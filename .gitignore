@@ -1,0 +1,11 @@
+# Art working files (PSDs, mockups, logo sources): only the exported
+# GameData/ELK/Textures/*.png ship with the mod.
+dev/
+CLAUDE.md
+
+# Release packages
+ELK*.zip
+
+# OS/editor cruft
+.DS_Store
+Thumbs.db
