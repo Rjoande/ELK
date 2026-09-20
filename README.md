@@ -1,5 +1,7 @@
 # ELK - Extended Logic Keys
 
+![](assets/Elk2.jpg)
+
 A small KSP plugin that assigns configurable keyboard hotkeys to stock functions that don't have any: toggling *Brakes*, or setting a specific SAS autopilot mode (Stability Assist, Prograde/Retrograde, Normal/Anti-normal, Radial in/out, Target/Anti-target, Maneuver node). An optional in-game toolbar (Space Center only) lets you assign keys by pressing them, instead of hand-editing a config file.
 
 ## The problem

@@ -1,10 +1,13 @@
 # Art working files (PSDs, mockups, logo sources): only the exported
 # GameData/ELK/Textures/*.png ship with the mod.
+.claude
 dev/
 CLAUDE.md
 
 # Release packages
 ELK*.zip
+GameData/000_ClickThroughBlocker/
+GameData/001_ToolbarControl/
 
 # OS/editor cruft
 .DS_Store
