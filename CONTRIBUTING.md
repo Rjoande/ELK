@@ -1,5 +1,7 @@
 # Contributing to ELK
 
+![](assets/ELK_long.png)
+
 ## Proposing a new hotkey slot
 
 Every ELK hotkey is one entry in [`Source/ElkSlots.cs`](Source/ElkSlots.cs)'s `ElkSlots.All` list. That's the only file that needs to change for a new slot. `ElkAddon` (which fires the hotkeys in Flight) and `ElkWindow` (the toolbar) both just read that same list, so nothing else needs to know a new slot exists.
