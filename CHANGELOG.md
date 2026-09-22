@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.0.1
+
+### Added
+- `SAS autoengage` (default `true`, with a checkbox in the toolbar window): an SAS mode hotkey pressed while SAS is off now switches SAS on and selects that mode in one press.
+
+### Fixed
+- An SAS mode hotkey pressed while SAS was off could engage SAS in *Stability Assist* instead of the requested mode.
+
 ## v1.0.0
 
 ### Added

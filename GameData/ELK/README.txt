@@ -56,6 +56,9 @@ In the toolbar window:
   Clear ....... removes a binding (so does pressing Delete mid-capture)
   Esc ......... cancels a capture without changing anything
 
+  "Vector key also switch SAS on" ... see sas_autoengage under
+                                      CONFIGURATION FILE below
+
 A non-blocking warning appears under a row if the key you just picked is also
 used by another ELK slot or by a stock keybinding. It is advisory only - you
 can keep the key if you want. See "A note about Brakes" below for the one
@@ -77,6 +80,7 @@ Space Center, so no game restart is needed after an edit.
     {
         enabled = true
         toolbar = true
+        sas_autoengage = true
 
         BRAKES_TOGGLE
         {
@@ -128,6 +132,22 @@ Space Center, so no game restart is needed after an edit.
   toolbar = false   hides the Space Center button/window entirely, so the
                     ToolbarControl/ClickThroughBlocker dependencies are not
                     needed.
+
+  sas_autoengage = true (the default)
+                    An SAS mode key pressed while SAS is OFF switches SAS on
+                    and selects that mode in one press - as if you had
+                    pressed the stock SAS key (T) first. Otherwise the press
+                    would have nothing to act on.
+  sas_autoengage = false
+                    SAS mode keys only change mode while SAS is already on,
+                    and do nothing while it is off.
+
+                    The toolbar window has a checkbox for this, so it can be
+                    flipped in-game without editing the file. Either way, a
+                    mode key still does nothing when the mode itself is not
+                    available (Maneuver with no node, Target with nothing
+                    targeted) - that is checked before SAS is engaged, so a
+                    dead press never switches SAS on behind your back.
 
 KEY FORMAT: optional modifiers separated by "+", then the main key, all
 literal UnityEngine.KeyCode names - for example:

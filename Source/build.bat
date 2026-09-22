@@ -5,7 +5,7 @@ rem compiler bundled with the .NET Framework). The DLL is written into this
 rem repo's GameData/ELK/Plugins, then copied into the KSP install below.
 rem Set KSP to your own install path if it differs.
 
-set "KSP=D:\SteamLibrary\steamapps\common\Kerbal Space Program"
+set "KSP=E:\SteamBackup\Kerbal Space Program"
 set "MANAGED=%KSP%\KSP_x64_Data\Managed"
 set "TOOLBAR=%KSP%\GameData\001_ToolbarControl\Plugins"
 set "OUT=%~dp0..\GameData\ELK\Plugins"

@@ -22,7 +22,7 @@ namespace ELK
 {
 	public static class ElkConfig
 	{
-		public const string Version = "1.0.0";
+		public const string Version = "1.0.1";
 
 		// ELK.dll sits in GameData/ELK/Plugins/, and PluginData is a SIBLING
 		// of Plugins/ (both directly under GameData/ELK/), not nested inside
@@ -38,6 +38,9 @@ namespace ELK
 		public static bool Enabled { get; private set; }
 		public static bool ToolbarEnabled { get; private set; }
 
+		/// <summary>When true, an SAS mode hotkey switches SAS on if it is off, instead of no-opping (see ElkSlots.SasSlot).</summary>
+		public static bool SasAutoEngage { get; private set; }
+
 		private static readonly Dictionary<string, ElkBind> binds = new Dictionary<string, ElkBind>();
 
 		public static Dictionary<string, ElkBind> Binds
@@ -49,6 +52,7 @@ namespace ELK
 		{
 			Enabled = true;
 			ToolbarEnabled = true;
+			SasAutoEngage = true;
 			binds.Clear();
 			for (int i = 0; i < ElkSlots.All.Count; i++)
 			{
@@ -66,6 +70,7 @@ namespace ELK
 			bool b;
 			if (bool.TryParse(node.GetValue("enabled"), out b)) Enabled = b;
 			if (bool.TryParse(node.GetValue("toolbar"), out b)) ToolbarEnabled = b;
+			if (bool.TryParse(node.GetValue("sas_autoengage"), out b)) SasAutoEngage = b;
 
 			for (int i = 0; i < ElkSlots.All.Count; i++)
 			{
@@ -77,6 +82,7 @@ namespace ELK
 			}
 
 			Debug.Log("[ELK] v" + Version + ": enabled=" + Enabled + " toolbar=" + ToolbarEnabled
+				+ " sas_autoengage=" + SasAutoEngage
 				+ ", " + CountBound() + "/" + ElkSlots.All.Count + " slots bound");
 		}
 
@@ -85,16 +91,8 @@ namespace ELK
 		{
 			binds[slotId] = bind;
 
-			ConfigNode root = ConfigNode.Load(configPath);
-			if (root == null)
-			{
-				root = new ConfigNode();
-			}
-			ConfigNode node = root.GetNode("ELK");
-			if (node == null)
-			{
-				node = root.AddNode("ELK");
-			}
+			ConfigNode root;
+			ConfigNode node = OpenElkNode(out root);
 			ConfigNode slotNode = node.GetNode(slotId);
 			if (slotNode == null)
 			{
@@ -109,6 +107,44 @@ namespace ELK
 				slotNode.AddValue("key", bind.ToKeySpec());
 			}
 			root.Save(configPath);
+		}
+
+		/// <summary>Sets the SAS auto-engage option in memory and persists it, same commit-on-click path as SetBind.</summary>
+		public static void SetSasAutoEngage(bool value)
+		{
+			SasAutoEngage = value;
+
+			ConfigNode root;
+			ConfigNode node = OpenElkNode(out root);
+			// Lowercase on purpose: bool.ToString() would write "True", which
+			// parses back fine but reads as an outlier next to the hand-written
+			// "enabled = true" / "toolbar = true" the shipped cfg already has.
+			string text = value ? "true" : "false";
+			if (node.HasValue("sas_autoengage"))
+			{
+				node.SetValue("sas_autoengage", text);
+			}
+			else
+			{
+				node.AddValue("sas_autoengage", text);
+			}
+			root.Save(configPath);
+		}
+
+		/// <summary>Loads the cfg (creating the file's root and ELK node in memory if absent) and hands back the ELK node to write into.</summary>
+		private static ConfigNode OpenElkNode(out ConfigNode root)
+		{
+			root = ConfigNode.Load(configPath);
+			if (root == null)
+			{
+				root = new ConfigNode();
+			}
+			ConfigNode node = root.GetNode("ELK");
+			if (node == null)
+			{
+				node = root.AddNode("ELK");
+			}
+			return node;
 		}
 
 		private static int CountBound()

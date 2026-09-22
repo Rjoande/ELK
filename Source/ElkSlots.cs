@@ -59,13 +59,36 @@ namespace ELK
 		{
 			return delegate(Vessel vessel)
 			{
+				bool sasOn = vessel.ActionGroups[KSPActionGroup.SAS];
+
+				// With SAS off, a mode key is only meaningful if we are
+				// allowed to switch SAS on for the player ("as if T had been
+				// pressed first"); otherwise the press is a deliberate no-op.
+				if (!sasOn && !ElkConfig.SasAutoEngage)
+					return;
+
+				// CanSetMode() first, before touching the action group: a
+				// Maneuver/Target key with nothing selected must not engage
+				// SAS as a side effect of doing nothing else.
 				if (!vessel.Autopilot.CanSetMode(mode))
 					return;
-				if (!vessel.ActionGroups[KSPActionGroup.SAS])
+
+				if (!sasOn)
 				{
 					vessel.ActionGroups.SetGroup(KSPActionGroup.SAS, true);
 				}
-				if (vessel.Autopilot.Mode != mode)
+
+				// The !Enabled half of this test matters and is easy to miss:
+				// ActionGroupList.SetGroup() only flips the group flag, it
+				// does not engage the autopilot. VesselAutopilot.Update()
+				// picks that up later in the frame and, finding itself not
+				// yet enabled, calls the parameterless Enable() - which is
+				// Enable(StabilityAssist). So if we skipped Enable(mode) just
+				// because Autopilot.Mode already equalled the requested mode
+				// (its last value persists while SAS is off), SAS would come
+				// up in Stability Assist instead of the mode asked for.
+				// Verified against KSP 1.12.5 Assembly-CSharp.dll, decompiled.
+				if (!vessel.Autopilot.Enabled || vessel.Autopilot.Mode != mode)
 				{
 					vessel.Autopilot.Enable(mode);
 				}

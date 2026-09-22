@@ -28,6 +28,7 @@ ELK
 {
 	enabled = true
 	toolbar = true
+	sas_autoengage = true
 
 	BRAKES_TOGGLE
 	{
@@ -77,6 +78,8 @@ ELK
 ```
 
 Every `key` ships **empty**. This is deliberate: ELK never picks a default for you, so a fresh install can never collide with a binding you already use elsewhere. 
+
+`sas_autoengage = true` (the default) means an SAS mode key pressed while SAS is *off* switches SAS on and selects that mode in one press, exactly as if you had pressed the stock SAS key (<kbd>T</kbd>) first - otherwise the press would have nothing to act on. Set it to `false` and the SAS keys only ever change mode while SAS is already on. The toolbar has a checkbox for it, so it can be flipped in-game. Either way a mode key still does nothing when the mode itself isn't available (*Maneuver* with no node planned, *Target* with nothing targeted): ELK checks that before engaging anything, so a dead key press can't leave you with SAS switched on behind your back.
 
 **Key format**: optional modifiers separated by `+`, then the main key, all literal `UnityEngine.KeyCode` names - e.g. `Y`, `LeftAlt+Y`, `LeftControl+LeftShift+G`. A key captured through the toolbar is written back in this exact format, so both ways of setting a key stay compatible with each other.
 
