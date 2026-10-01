@@ -1,0 +1,70 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- KSP 1.12.5 runs Unity 2019.4 / Mono: target .NET Framework 4.7.2 -->
+    <TargetFramework>net472</TargetFramework>
+    <!-- Pinned to C# 5 so the same sources keep building with build.bat's
+         legacy csc (the no-SDK path documented in CONTRIBUTING.md). -->
+    <LangVersion>5</LangVersion>
+    <AssemblyName>ELK</AssemblyName>
+    <RootNamespace>ELK</RootNamespace>
+    <!-- No generated AssemblyInfo: build.bat emits none either, and the
+         version the mod reports lives in ElkConfig.Version. -->
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <DebugType>none</DebugType>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <!-- KSP install the reference assemblies come from (and where the built
+         DLL is copied). Override from the command line when it differs:
+             dotnet build -c Release -p:KspRoot="D:\path\to\KSP" -->
+    <KspRoot Condition="'$(KspRoot)' == ''">E:\SteamBackup\Kerbal Space Program</KspRoot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Compile against reference assemblies even without a local targeting pack -->
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(KspRoot)\KSP_x64_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>$(KspRoot)\KSP_x64_Data\Managed\UnityEngine.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(KspRoot)\KSP_x64_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>$(KspRoot)\KSP_x64_Data\Managed\UnityEngine.InputLegacyModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>$(KspRoot)\KSP_x64_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- Part implements UnityEngine.EventSystems interfaces that live here:
+         needed as soon as a Part or its Modules list is touched -->
+    <Reference Include="UnityEngine.UI">
+      <HintPath>$(KspRoot)\KSP_x64_Data\Managed\UnityEngine.UI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- Optional toolbar: same shared install build.bat links against -->
+    <Reference Include="ToolbarControl">
+      <HintPath>$(KspRoot)\GameData\001_ToolbarControl\Plugins\ToolbarControl.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- Same two destinations as build.bat: the repo's payload folder (the
+       installable mod, root of the release zip) and the KSP install used
+       for testing. The install copy is allowed to fail (KSP running, or a
+       KspRoot without ELK installed) without failing the build. -->
+  <Target Name="DeployToGameData" AfterTargets="Build">
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(MSBuildProjectDirectory)\..\GameData\ELK\Plugins\" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(KspRoot)\GameData\ELK\Plugins\" ContinueOnError="true" />
+  </Target>
+
+</Project>

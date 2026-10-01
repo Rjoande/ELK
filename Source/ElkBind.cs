@@ -45,10 +45,35 @@ namespace ELK
 			return true;
 		}
 
-		/// <summary>True if this and other share the same primary key (the relevant conflict test — see ElkConflicts).</summary>
+		/// <summary>True if this and other share the same primary key, whatever the modifiers.</summary>
 		public bool SharesPrimaryWith(ElkBind other)
 		{
 			return other != null && !IsNone && primary == other.primary;
+		}
+
+		/// <summary>
+		/// True if a single key press can fire both binds: same primary and
+		/// one bind's modifier set contained in the other's. Matches()
+		/// ignores extra held keys, so "Keypad1" also fires while
+		/// "RightShift+Keypad1" is pressed (nested: conflict), whereas
+		/// "RightControl+Keypad1" and "RightShift+Keypad1" need different
+		/// held keys and never fire together (disjoint: no conflict).
+		/// </summary>
+		public bool ConflictsWith(ElkBind other)
+		{
+			if (!SharesPrimaryWith(other))
+				return false;
+			return ModifiersContainedIn(other) || other.ModifiersContainedIn(this);
+		}
+
+		private bool ModifiersContainedIn(ElkBind other)
+		{
+			for (int i = 0; i < modifiers.Count; i++)
+			{
+				if (!other.modifiers.Contains(modifiers[i]))
+					return false;
+			}
+			return true;
 		}
 
 		/// <summary>Human-readable form for the toolbar UI and conflict messages, e.g. "LeftShift+J".</summary>

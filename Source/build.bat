@@ -20,6 +20,7 @@ set "CSC=C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
  /r:"%MANAGED%\UnityEngine.CoreModule.dll" ^
  /r:"%MANAGED%\UnityEngine.InputLegacyModule.dll" ^
  /r:"%MANAGED%\UnityEngine.IMGUIModule.dll" ^
+ /r:"%MANAGED%\UnityEngine.UI.dll" ^
  /r:"%MANAGED%\Assembly-CSharp.dll" ^
  /r:"%TOOLBAR%\ToolbarControl.dll" ^
  "%~dp0ElkBind.cs" ^
@@ -27,6 +28,14 @@ set "CSC=C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
  "%~dp0ElkConflicts.cs" ^
  "%~dp0ElkConfig.cs" ^
  "%~dp0ElkSlots.cs" ^
+ "%~dp0ElkGroups.cs" ^
+ "%~dp0ElkSets.cs" ^
+ "%~dp0ElkVesselModule.cs" ^
+ "%~dp0Bridges\ElkReflection.cs" ^
+ "%~dp0Bridges\ElkNavBridge.cs" ^
+ "%~dp0Bridges\ElkAaKeys.cs" ^
+ "%~dp0Bridges\ElkAaBridge.cs" ^
+ "%~dp0Bridges\ElkMjBridge.cs" ^
  "%~dp0ElkAddon.cs" ^
  "%~dp0ElkToolbarApp.cs" ^
  "%~dp0ElkWindow.cs"

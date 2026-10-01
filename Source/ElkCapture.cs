@@ -141,6 +141,42 @@ namespace ELK
 				InputLockManager.RemoveControlLock(LockId);
 		}
 
+		// Unity's KeyCode lays joystick buttons out as JoystickButton0..19
+		// (any joystick) followed by Joystick1Button0..19 .. Joystick8Button0..19.
+		private const int ButtonsPerJoystick = 20;
+
+		private static bool IsGenericJoystickButton(KeyCode code)
+		{
+			return code >= KeyCode.JoystickButton0 && code <= KeyCode.JoystickButton19;
+		}
+
+		private static int ButtonIndex(KeyCode code)
+		{
+			if (IsGenericJoystickButton(code))
+				return (int)code - (int)KeyCode.JoystickButton0;
+			return ((int)code - (int)KeyCode.Joystick1Button0) % ButtonsPerJoystick;
+		}
+
+		/// <summary>The JoystickKButtonN currently held for button index n, or None.</summary>
+		private static KeyCode SpecificJoystickButtonHeld(int index)
+		{
+			for (int code = (int)KeyCode.Joystick1Button0 + index; code <= (int)KeyCode.Joystick8Button19; code += ButtonsPerJoystick)
+			{
+				if (Input.GetKey((KeyCode)code))
+					return (KeyCode)code;
+			}
+			return KeyCode.None;
+		}
+
+		/// <summary>A generic JoystickButtonN primary becomes the JoystickKButtonN actually pressed, so the bind names one joystick and one button.</summary>
+		private static KeyCode PreferSpecificJoystick(KeyCode primary)
+		{
+			if (!IsGenericJoystickButton(primary))
+				return primary;
+			KeyCode specific = SpecificJoystickButtonHeld(ButtonIndex(primary));
+			return specific == KeyCode.None ? primary : specific;
+		}
+
 		public static void Tick()
 		{
 			if (Time.frameCount == lastTickFrame)
@@ -211,17 +247,28 @@ namespace ELK
 					continue;
 
 				ElkBind bind = new ElkBind();
-				bind.primary = candidate;
+				bind.primary = PreferSpecificJoystick(candidate);
+				// HashSet: Enum.GetValues lists alias values twice (RightApple
+				// and RightCommand share one value), so without it a held
+				// alias key was recorded as a duplicated modifier.
+				HashSet<KeyCode> mods = new HashSet<KeyCode>();
 				for (int j = 0; j < AllKeyCodes.Length; j++)
 				{
 					KeyCode modCandidate = AllKeyCodes[j];
-					if (modCandidate == candidate || modCandidate == KeyCode.None || ExcludedKeys.Contains(modCandidate))
+					if (modCandidate == bind.primary || modCandidate == KeyCode.None || ExcludedKeys.Contains(modCandidate))
 						continue;
-					if (Input.GetKey(modCandidate))
-					{
-						bind.modifiers.Add(modCandidate);
-					}
+					if (!Input.GetKey(modCandidate))
+						continue;
+					// A joystick button is reported twice by Unity: as
+					// "JoystickButtonN" (any joystick) and as
+					// "JoystickKButtonN" (that joystick). Only the specific
+					// one is kept; the generic twin would otherwise end up
+					// as a spurious modifier of its own primary.
+					if (IsGenericJoystickButton(modCandidate) && SpecificJoystickButtonHeld(ButtonIndex(modCandidate)) != KeyCode.None)
+						continue;
+					mods.Add(modCandidate);
 				}
+				bind.modifiers.AddRange(mods);
 
 				IsCapturing = false;
 				InputLockManager.RemoveControlLock(LockId);

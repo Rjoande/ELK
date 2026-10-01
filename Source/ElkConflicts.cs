@@ -21,10 +21,12 @@ namespace ELK
 	/// every stock KeyBinding on GameSettings (reflection: stock exposes no
 	/// single "all keybindings" list).
 	///
-	/// Conflict heuristic: two binds conflict if they share the same
-	/// PRIMARY key, regardless of modifiers — see ElkBind.Matches for why
-	/// this is the correct direction to err in (a modifier-less bind fires
-	/// through another bind's modifier being held).
+	/// Conflict heuristic, ELK vs ELK: two binds conflict when one press
+	/// can fire both, i.e. same primary and nested modifier sets (see
+	/// ElkBind.ConflictsWith) - "RightControl+Keypad1" and
+	/// "RightShift+Keypad1" do not conflict. Stock keybindings and the
+	/// native hotkeys of supported mods have no modifiers, so for them the
+	/// primary alone decides: a bare key fires under any held modifier.
 	/// </summary>
 	public static class ElkConflicts
 	{
@@ -39,7 +41,10 @@ namespace ELK
 			{
 				if (kv.Key == excludeSlotId)
 					continue;
-				if (candidate.SharesPrimaryWith(kv.Value))
+				// Two slots in different key sets can never be active
+				// together, so sharing a key between them is the point,
+				// not a conflict (see ElkSets.CanCoexist).
+				if (candidate.ConflictsWith(kv.Value) && ElkSets.CanCoexist(excludeSlotId, kv.Key))
 				{
 					hits.Add("ELK '" + kv.Key + "' (" + kv.Value.Describe() + ")");
 				}
@@ -59,6 +64,28 @@ namespace ELK
 				else if (kb.secondary != null && !kb.secondary.isNone && kb.secondary.code == candidate.primary)
 				{
 					hits.Add("stock '" + field.Name + "' (secondary)");
+				}
+			}
+
+			// Native hotkeys of supported third-party mods, described by the
+			// mod's own group (only installed mods with hotkeys switched on,
+			// only groups that declare a scanner). Advisory like everything
+			// else here: a scanner that throws costs one warning, not the
+			// capture.
+			for (int i = 0; i < ElkGroups.All.Count; i++)
+			{
+				ElkGroup group = ElkGroups.All[i];
+				if (group.conflicts == null || !group.IsInstalled || !ElkConfig.GroupHotkeysEnabled(group.id))
+					continue;
+				try
+				{
+					List<string> modHits = group.conflicts(candidate);
+					if (modHits != null)
+						hits.AddRange(modHits);
+				}
+				catch (System.Exception e)
+				{
+					Debug.LogWarning("[ELK] " + group.tabLabel + " conflict scan failed: " + e.Message);
 				}
 			}
 			return hits;

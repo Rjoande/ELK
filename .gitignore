@@ -3,6 +3,7 @@
 .claude
 dev/
 CLAUDE.md
+notes/
 
 # Release packages
 ELK*.zip
@@ -12,3 +13,7 @@ GameData/001_ToolbarControl/
 # OS/editor cruft
 .DS_Store
 Thumbs.db
+
+# MSBuild output (Directory.Build.props sends it to LOCALAPPDATA/ELK; this is a safety net)
+Source/bin/
+Source/obj/
