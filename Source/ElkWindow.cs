@@ -1,8 +1,8 @@
 // Minimal IMGUI window ("UI minimale" — deliberately much smaller than
 // KRILL's 3-column layout): a row of tabs (one per slot group whose mod is
 // installed), then one row per slot of the active tab (label, key set
-// button while sets are in use, current bind, Capture, Clear), any live
-// conflict warning shown inline underneath. ELK only ever binds whole
+// button while sets are in use, map view toggle, current bind, Capture,
+// Clear), any live conflict warning shown inline underneath. ELK only ever binds whole
 // vessel-level actions, so there's no per-part target to pick the way
 // KRILL needs.
 //
@@ -31,7 +31,7 @@ namespace ELK
 		// capture line and any conflict warnings, and can never show a
 		// scrollbar or leave dead space under the last row. Tabs keep it
 		// that way: only one group's rows exist at a time.
-		private Rect windowRect = new Rect(200, 100, 610, 400);
+		private Rect windowRect = new Rect(200, 100, 660, 400);
 		private string activeGroupId = ElkGroups.Global;
 		private string capturingSlotId;
 		private string lastCaptureSlotId;
@@ -39,6 +39,7 @@ namespace ELK
 
 		private const float LabelWidth = 170f;
 		private const float SetButtonWidth = 72f;
+		private const float MapButtonWidth = 46f;
 		private const float BindWidth = 170f;
 
 		public static void Open()
@@ -76,11 +77,11 @@ namespace ELK
 
 		private void DrawWindow(int id)
 		{
-			// Width pinned to what a row actually needs (170 + 72 + 170 + 85
-			// + 65 plus IMGUI's own spacing), so the window keeps one width
-			// across every state instead of twitching wider whenever a
-			// longer line of text appears above the rows.
-			GUILayout.BeginVertical(GUILayout.Width(585));
+			// Width pinned to what a row actually needs (170 + 72 + 46 + 170
+			// + 85 + 65 plus IMGUI's own spacing), so the window keeps one
+			// width across every state instead of twitching wider whenever
+			// a longer line of text appears above the rows.
+			GUILayout.BeginVertical(GUILayout.Width(635));
 
 			DrawTabs();
 			// The ELK tab holds only the two set-switching hotkeys: no
@@ -104,6 +105,7 @@ namespace ELK
 			if (activeGroupId == ElkGroups.Global)
 			{
 				DrawSetsOptions();
+				DrawDevices();
 			}
 			else if (activeGroupId == ElkGroups.Squad)
 			{
@@ -119,10 +121,14 @@ namespace ELK
 			}
 
 			DrawSetAllRows();
+			DrawMapAllRows();
 
 			for (int i = 0; i < ElkSlots.All.Count; i++)
 			{
-				if (ElkSlots.All[i].group == activeGroupId)
+				// A slot gated on an add-on of the tab's mod (APR on the AA
+				// tab) is hidden while that add-on is absent; its binding
+				// stays in the cfg.
+				if (ElkSlots.All[i].group == activeGroupId && ElkSlots.All[i].IsAvailable)
 				{
 					DrawSlotRow(ElkSlots.All[i]);
 				}
@@ -277,6 +283,53 @@ namespace ELK
 			GUILayout.Space(6);
 		}
 
+		// ELK tab: the joysticks known by name (DEVICES node of ELK.cfg).
+		// One row per device: its short label (editable, committed as soon
+		// as the text is a valid unused label), the full name Unity reports,
+		// where that device sits right now, and Forget.
+		private readonly Dictionary<int, string> deviceLabelText = new Dictionary<int, string>();
+
+		private void DrawDevices()
+		{
+			List<ElkJoysticks.Device> devices = ElkJoysticks.Devices;
+			if (devices.Count == 0)
+				return;
+			GUI.enabled = !ElkCapture.IsCapturing;
+			GUILayout.Label("Joysticks known by name (a captured joystick button follows its device, not its number):");
+			int forget = 0;
+			for (int i = 0; i < devices.Count; i++)
+			{
+				ElkJoysticks.Device d = devices[i];
+				string text;
+				if (!deviceLabelText.TryGetValue(d.index, out text))
+				{
+					text = d.label;
+					deviceLabelText[d.index] = text;
+				}
+				GUILayout.BeginHorizontal();
+				string edited = GUILayout.TextField(text, ElkJoysticks.MaxLabelLength, GUILayout.Width(85));
+				if (edited != text)
+				{
+					deviceLabelText[d.index] = edited;
+					ElkJoysticks.SetLabel(d.index, edited);
+				}
+				GUILayout.Label("Joystick" + d.index + " = " + d.name, GUILayout.Width(330));
+				GUILayout.Label(ElkJoysticks.Status(d), GUILayout.Width(100));
+				if (GUILayout.Button("Forget", GUILayout.Width(60)))
+				{
+					forget = d.index;
+				}
+				GUILayout.EndHorizontal();
+			}
+			if (forget != 0)
+			{
+				deviceLabelText.Remove(forget);
+				ElkJoysticks.Forget(forget);
+			}
+			GUI.enabled = true;
+			GUILayout.Space(6);
+		}
+
 		/// <summary>Bulk assignment of every slot of the tab to one set (or to 'always'); shown only while sets are in use.</summary>
 		private void DrawSetAllRows()
 		{
@@ -300,6 +353,31 @@ namespace ELK
 			GUILayout.FlexibleSpace();
 			GUILayout.EndHorizontal();
 			GUI.enabled = true;
+			GUILayout.Space(4);
+		}
+
+		/// <summary>Bulk switch of the map view flag for every slot of the tab. Not in the ELK tab: set switching always works in map view.</summary>
+		private void DrawMapAllRows()
+		{
+			if (activeGroupId == ElkGroups.Global)
+				return;
+			GUI.enabled = !ElkCapture.IsCapturing;
+			GUILayout.BeginHorizontal();
+			GUILayout.Label("Map view, all rows:", GUILayout.Width(130));
+			bool on = GUILayout.Button("On", GUILayout.Width(MapButtonWidth));
+			bool off = GUILayout.Button("Off", GUILayout.Width(MapButtonWidth));
+			GUILayout.Label("(Map = the key also works in map view)");
+			GUILayout.FlexibleSpace();
+			GUILayout.EndHorizontal();
+			GUI.enabled = true;
+			if (on || off)
+			{
+				for (int s = 0; s < ElkSlots.All.Count; s++)
+				{
+					if (ElkSlots.All[s].group == activeGroupId)
+						ElkConfig.SetSlotMap(ElkSlots.All[s].id, on);
+				}
+			}
 			GUILayout.Space(4);
 		}
 
@@ -342,6 +420,15 @@ namespace ELK
 			if (wanted != ElkConfig.SasAutoEngage)
 			{
 				ElkConfig.SetSasAutoEngage(wanted);
+			}
+
+			GUI.enabled = !ElkCapture.IsCapturing;
+			bool wantedNavball = GUILayout.Toggle(ElkConfig.SasNavball,
+				" Vector key also shows the navball if hidden");
+			GUI.enabled = true;
+			if (wantedNavball != ElkConfig.SasNavball)
+			{
+				ElkConfig.SetSasNavball(wantedNavball);
 			}
 			GUILayout.Space(6);
 		}
@@ -455,6 +542,8 @@ namespace ELK
 				" Translatron speed and Kill H/S keys also switch it on (Keep vertical)");
 			DrawBoolOption(ElkGroups.MechJeb2, ElkMjBridge.OptAutoShow, false,
 				" Also open the MechJeb window of the module a key drives");
+			DrawBoolOption(ElkGroups.MechJeb2, ElkMjBridge.OptNavball, false,
+				" SmartASS key also shows the navball if hidden");
 
 			GUILayout.BeginHorizontal();
 			DrawStepField(ElkGroups.MechJeb2, "Speed step", ElkMjBridge.OptTransStep, 1f);
@@ -500,6 +589,7 @@ namespace ELK
 			{
 				DrawSetButton(slot);
 			}
+			DrawMapButton(slot);
 
 			bool isCapturingThisRow = capturingSlotId == slot.id && ElkCapture.IsCapturing;
 			string bindLabel = isCapturingThisRow ? "Press a key..." : bind.Describe();
@@ -545,6 +635,24 @@ namespace ELK
 				ElkConfig.SetSlotSet(slot.id, next);
 			}
 			GUI.enabled = true;
+		}
+
+		/// <summary>Button-styled toggle, pressed = the slot also fires in map view. The set-switching slots always do and get a fixed label.</summary>
+		private void DrawMapButton(ElkSlot slot)
+		{
+			if (slot.group == ElkGroups.Global)
+			{
+				GUILayout.Label("in map", GUILayout.Width(MapButtonWidth));
+				return;
+			}
+			bool current = ElkConfig.GetSlotMap(slot.id);
+			GUI.enabled = !ElkCapture.IsCapturing;
+			bool wanted = GUILayout.Toggle(current, "Map", GUI.skin.button, GUILayout.Width(MapButtonWidth));
+			GUI.enabled = true;
+			if (wanted != current)
+			{
+				ElkConfig.SetSlotMap(slot.id, wanted);
+			}
 		}
 
 		private void BeginCapture(string slotId)

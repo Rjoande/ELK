@@ -34,6 +34,21 @@
 // aa_autoengage: a Cruise/FBW key pressed while that controller is off
 // switches master and controller on first (activateAutopilot), the same
 // spirit as sas_autoengage for the stock SAS keys.
+//
+// A vessel's controller instances only exist once its master has been
+// switched on at least once (TopModuleManager.OnActivate -> create_context,
+// decompiled 1.6.1); until then getVesselModules holds the manager alone.
+// activateAutopilot(Type) sets Active first, so it creates them itself.
+//
+// AtmosphereApproach (AAPR, Rjoande's APR add-on, GPL-3): an AA
+// StateController living in AtmosphereApproach.dll, reached the same way
+// and only when that DLL is loaded. Members verified against AAPR 0.1:
+//
+//   AtmosphereApproach.ApproachController : StateController
+//       public bool Armed { get; set; } - the window's APR toggle and the
+//       native hotkey both set it; the setter refuses to arm without a
+//       NavInstruments runway tuned on the current body and posts its own
+//       status messages.
 
 using System;
 using System.Collections;
@@ -97,7 +112,17 @@ namespace ELK
 		private static FieldInfo fmBalanceEngines;
 		private static MethodInfo postStatusMessage;
 
+		private const string AprDllName = "AtmosphereApproach";
+		private const string AprControllerTypeName = "AtmosphereApproach.ApproachController";
+
+		private static bool aprChecked;
+		private static bool aprInstalled;
+		private static Assembly aprAssembly;
+		private static Type aprType;
+		private static PropertyInfo aprArmed;            // ApproachController.Armed
+
 		private static bool warnedNoModules;
+		private static bool warnedNoController;
 		private static bool warnedInvoke;
 
 		public static Assembly Assembly
@@ -119,6 +144,28 @@ namespace ELK
 				installed = assembly != null;
 			}
 			return installed;
+		}
+
+		/// <summary>AtmosphereApproach's assembly when loaded (it cannot load without AA), else null. ElkAaKeys scans it for AAPR's native hotkey.</summary>
+		public static Assembly ApproachAssembly
+		{
+			get
+			{
+				IsApproachInstalled();
+				return aprAssembly;
+			}
+		}
+
+		/// <summary>True if AtmosphereApproach.dll is loaded: shows the APR row in the AA tab and gates its slot.</summary>
+		public static bool IsApproachInstalled()
+		{
+			if (!aprChecked)
+			{
+				aprChecked = true;
+				aprAssembly = ElkReflection.FindAssembly(AprDllName);
+				aprInstalled = aprAssembly != null;
+			}
+			return aprInstalled;
 		}
 
 		// ---- options (read live from the AA cfg through ElkConfig) ----
@@ -222,6 +269,14 @@ namespace ELK
 					found++;
 			}
 			Debug.Log("[ELK] " + ModLabel + " bridge: " + found + "/" + members.Length + " members resolved, core " + (ready ? "active" : "disabled"));
+
+			if (IsApproachInstalled())
+			{
+				aprType = ElkReflection.FindType(aprAssembly, AprControllerTypeName, AprDllName);
+				aprArmed = ElkReflection.FindProperty(aprType, "Armed", pubInst, AprDllName);
+				int aprFound = (aprType != null ? 1 : 0) + (aprArmed != null ? 1 : 0);
+				Debug.Log("[ELK] " + AprDllName + " bridge: " + aprFound + "/2 members resolved, APR hotkey " + (aprArmed != null ? "active" : "disabled"));
+			}
 		}
 
 		private static object ParseEnum(Type enumType, string name)
@@ -374,14 +429,75 @@ namespace ELK
 		/// </summary>
 		private static object Engaged(Vessel vessel, Type controllerType)
 		{
+			bool switchedOn;
+			return Engaged(vessel, controllerType, out switchedOn);
+		}
+
+		/// <summary>switchedOn: this press switched the controller on (aa_autoengage), so a toggle slot forces its "on" state instead of flipping whatever AA had saved.</summary>
+		private static object Engaged(Vessel vessel, Type controllerType, out bool switchedOn)
+		{
+			switchedOn = false;
 			object controller = Module(vessel, controllerType);
-			if (controller == null)
-				return null;
-			if (IsActive(controller))
+			if (controller != null && IsActive(controller))
 				return controller;
 			if (!AutoEngage)
 				return null;
-			return Activate(vessel, controllerType) ? controller : null;
+			// A null controller on a vessel AA knows means its master has
+			// never been on: activateAutopilot builds the modules, so
+			// look the controller up again afterwards.
+			if (!Activate(vessel, controllerType))
+				return null;
+			switchedOn = true;
+			return (controller != null) ? controller : Module(vessel, controllerType);
+		}
+
+		/// <summary>
+		/// A module instance whether active or not, for slots that only set a
+		/// value or a flag and never switch anything on. Null, logged once, on
+		/// a vessel whose master has never been on (AA has not built it yet).
+		/// </summary>
+		private static object Existing(Vessel vessel, Type type, string what)
+		{
+			object module = Module(vessel, type);
+			if (module == null && !warnedNoController && Module(vessel, topType) != null)
+			{
+				warnedNoController = true;
+				Debug.Log("[ELK] " + ModLabel + ": " + what + " not created yet (master never switched on for this vessel), hotkey ignored");
+			}
+			return module;
+		}
+
+		// ---- slot actions: AtmosphereApproach ----
+
+		/// <summary>
+		/// APR arm/disarm, what AAPR's own hotkey does: select the Approach
+		/// controller first if another autopilot (or none) is flying, then
+		/// flip Armed. Deliberately ignores aa_autoengage, like the FD and
+		/// select keys; the Armed setter applies AAPR's own runway gate.
+		/// </summary>
+		public static void ApproachArmToggle(Vessel vessel)
+		{
+			Resolve();
+			if (!ready || aprType == null || aprArmed == null)
+				return;
+			object apr = Module(vessel, aprType);
+			if (apr == null || !IsActive(apr))
+			{
+				if (!Activate(vessel, aprType))
+					return;
+				apr = Module(vessel, aprType);
+				if (apr == null)
+					return;
+			}
+			try
+			{
+				bool armed = (bool)aprArmed.GetValue(apr, null);
+				aprArmed.SetValue(apr, !armed, null);
+			}
+			catch (Exception e)
+			{
+				WarnInvoke("Armed", e);
+			}
 		}
 
 		// ---- slot actions: manager ----
@@ -449,13 +565,19 @@ namespace ELK
 			Activate(vessel, cruiseType);
 		}
 
-		/// <summary>Fork's FD key: leave Cruise Flight for Standard FBW, otherwise go to Cruise Flight.</summary>
+		/// <summary>
+		/// FD key: with the master on, Cruise Flight <-> Standard FBW; with the
+		/// master off (or never on), always Standard FBW, AA's own default
+		/// controller on a fresh vessel.
+		/// </summary>
 		public static void ToggleFd(Vessel vessel)
 		{
-			object cruise = Module(vessel, cruiseType);
-			if (cruise == null)
+			object top = Module(vessel, topType);
+			if (top == null)
 				return;
-			Activate(vessel, IsActive(cruise) ? fbwType : cruiseType);
+			object cruise = Module(vessel, cruiseType);
+			bool toCruise = IsActive(top) && cruise != null && !IsActive(cruise);
+			Activate(vessel, toCruise ? cruiseType : fbwType);
 		}
 
 		// ---- slot actions: Cruise Flight ----
@@ -535,12 +657,15 @@ namespace ELK
 
 		public static void CruiseVerticalToggle(Vessel vessel)
 		{
-			object cruise = Engaged(vessel, cruiseType);
+			bool switchedOn;
+			object cruise = Engaged(vessel, cruiseType, out switchedOn);
 			if (cruise == null || verticalControl == null)
 				return;
 			try
 			{
-				bool vertical = !(bool)verticalControl.GetValue(cruise);
+				// Just switched on by this press: the key means "vertical
+				// motion on", not "flip whatever AA had saved".
+				bool vertical = switchedOn || !(bool)verticalControl.GetValue(cruise);
 				verticalControl.SetValue(cruise, vertical);
 				Message(vertical ? "Vertical motion control enabled" : "Vertical motion control disabled");
 			}
@@ -591,9 +716,11 @@ namespace ELK
 			}
 		}
 
+		/// <summary>use_keys is a static AA preference: flipped as is, no controller involved, nothing switched on.</summary>
 		public static void CruiseKeysModeToggle(Vessel vessel)
 		{
-			if (Engaged(vessel, cruiseType) == null || useKeys == null)
+			Resolve();
+			if (!ready || useKeys == null)
 				return;
 			try
 			{
@@ -640,9 +767,10 @@ namespace ELK
 			}
 		}
 
+		/// <summary>Bug encoders never switch anything on: the bug is preset with AA off or FBW flying, and used once Cruise Flight is.</summary>
 		private static void CruiseBug(Vessel vessel, FieldInfo bugField, float delta, bool wrapCourse)
 		{
-			object cruise = Engaged(vessel, cruiseType);
+			object cruise = Existing(vessel, cruiseType, "Cruise Flight");
 			object bug;
 			float value;
 			if (cruise == null || !ReadBug(cruise, bugField, out bug, out value))
@@ -726,13 +854,16 @@ namespace ELK
 
 		private static void FbwToggle(Vessel vessel, PropertyInfo prop)
 		{
-			object fbw = Engaged(vessel, fbwType);
+			bool switchedOn;
+			object fbw = Engaged(vessel, fbwType, out switchedOn);
 			if (fbw == null || prop == null)
 				return;
 			try
 			{
-				// The setters post AA's own "enabled/disabled" message.
-				bool on = !(bool)prop.GetValue(fbw, null);
+				// The setters post AA's own "enabled/disabled" message. A
+				// press that switched FBW on forces the flag on rather than
+				// flipping the saved value.
+				bool on = switchedOn || !(bool)prop.GetValue(fbw, null);
 				prop.SetValue(fbw, on, null);
 			}
 			catch (Exception e)
@@ -752,7 +883,7 @@ namespace ELK
 		/// <summary>Speed control flag of the thrust controller; only has an effect while a controller that uses it is active (AA's own rule).</summary>
 		public static void SpeedControlToggle(Vessel vessel)
 		{
-			object ptc = Module(vessel, ptcType);
+			object ptc = Existing(vessel, ptcType, "Prograde thrust controller");
 			if (ptc == null || ptcSpeedControl == null)
 				return;
 			try
@@ -769,7 +900,7 @@ namespace ELK
 
 		public static void ThrustBalancingToggle(Vessel vessel)
 		{
-			object fm = Module(vessel, flightModelType);
+			object fm = Existing(vessel, flightModelType, "Flight model");
 			if (fm == null || fmBalanceEngines == null)
 				return;
 			try

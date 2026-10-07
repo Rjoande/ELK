@@ -13,8 +13,8 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <DebugType>none</DebugType>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-    <!-- KSP install the reference assemblies come from (and where the built
-         DLL is copied). Override from the command line when it differs:
+    <!-- KSP install the reference assemblies come from (nothing is copied
+         there). Override from the command line when it differs:
              dotnet build -c Release -p:KspRoot="D:\path\to\KSP" -->
     <KspRoot Condition="'$(KspRoot)' == ''">E:\SteamBackup\Kerbal Space Program</KspRoot>
   </PropertyGroup>
@@ -58,13 +58,11 @@
     </Reference>
   </ItemGroup>
 
-  <!-- Same two destinations as build.bat: the repo's payload folder (the
-       installable mod, root of the release zip) and the KSP install used
-       for testing. The install copy is allowed to fail (KSP running, or a
-       KspRoot without ELK installed) without failing the build. -->
+  <!-- Same destination as build.bat: the repo's payload folder (the
+       installable mod, root of the release zip). Copying the DLL into a
+       KSP install is left to you. -->
   <Target Name="DeployToGameData" AfterTargets="Build">
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(MSBuildProjectDirectory)\..\GameData\ELK\Plugins\" />
-    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(KspRoot)\GameData\ELK\Plugins\" ContinueOnError="true" />
   </Target>
 
 </Project>

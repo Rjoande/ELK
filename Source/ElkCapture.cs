@@ -246,8 +246,12 @@ namespace ELK
 				if (!Input.GetKeyDown(candidate))
 					continue;
 
+				// What is stored is the LOGICAL joystick index (device known
+				// by name, see ElkJoysticks); the physical one is what the
+				// modifier scan below must compare against.
+				KeyCode physicalPrimary = PreferSpecificJoystick(candidate);
 				ElkBind bind = new ElkBind();
-				bind.primary = PreferSpecificJoystick(candidate);
+				bind.primary = ElkJoysticks.Logical(physicalPrimary);
 				// HashSet: Enum.GetValues lists alias values twice (RightApple
 				// and RightCommand share one value), so without it a held
 				// alias key was recorded as a duplicated modifier.
@@ -255,7 +259,7 @@ namespace ELK
 				for (int j = 0; j < AllKeyCodes.Length; j++)
 				{
 					KeyCode modCandidate = AllKeyCodes[j];
-					if (modCandidate == bind.primary || modCandidate == KeyCode.None || ExcludedKeys.Contains(modCandidate))
+					if (modCandidate == physicalPrimary || modCandidate == KeyCode.None || ExcludedKeys.Contains(modCandidate))
 						continue;
 					if (!Input.GetKey(modCandidate))
 						continue;
@@ -266,7 +270,7 @@ namespace ELK
 					// as a spurious modifier of its own primary.
 					if (IsGenericJoystickButton(modCandidate) && SpecificJoystickButtonHeld(ButtonIndex(modCandidate)) != KeyCode.None)
 						continue;
-					mods.Add(modCandidate);
+					mods.Add(ElkJoysticks.Logical(modCandidate));
 				}
 				bind.modifiers.AddRange(mods);
 

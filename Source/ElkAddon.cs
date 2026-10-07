@@ -38,6 +38,34 @@ namespace ELK
 			}
 		}
 
+		// Stock's own lock id for map view (MapView.enterMapView, reshaped
+		// by NavBallToggle as the navball is shown or hidden there).
+		private const string MapViewLockId = "MapView";
+
+		// True while a text field has keyboard focus (renaming a vessel or
+		// a maneuver...) or anything else locks the keyboard - same guard
+		// SBT already uses. InputLockManager.IsLocked(mask) is true as soon
+		// as ONE bit of the mask is locked, and map view always holds a lock
+		// that overlaps KEYBOARDINPUT (every ship control with the navball
+		// hidden, action groups and staging with it shown), so in map view
+		// that one lock is left out and every other lock still counts.
+		// Verified against KSP 1.12.5 Assembly-CSharp.dll, decompiled.
+		private static bool KeyboardLocked(bool inMap)
+		{
+			if (!InputLockManager.IsLocked(ControlTypes.KEYBOARDINPUT))
+				return false;
+			if (!inMap)
+				return true;
+
+			ulong others = 0uL;
+			foreach (KeyValuePair<string, ulong> entry in InputLockManager.lockStack)
+			{
+				if (entry.Key != MapViewLockId)
+					others |= entry.Value;
+			}
+			return (others & (ulong)ControlTypes.KEYBOARDINPUT) != 0uL;
+		}
+
 		public void Update()
 		{
 			if (!ElkConfig.Enabled)
@@ -46,9 +74,8 @@ namespace ELK
 			if (!HighLogic.LoadedSceneIsFlight || FlightGlobals.ActiveVessel == null)
 				return;
 
-			// Skip while a text field has keyboard focus (e.g. renaming a
-			// vessel/maneuver) — same guard SBT already uses.
-			if (InputLockManager.IsLocked(ControlTypes.KEYBOARDINPUT))
+			bool inMap = MapView.MapIsEnabled;
+			if (KeyboardLocked(inMap))
 				return;
 
 			Vessel vessel = FlightGlobals.ActiveVessel;
@@ -70,6 +97,13 @@ namespace ELK
 					// another slot in the active set.
 					if (!ElkSets.SlotActive(slot.id, vessel))
 						continue;
+					// Map view: only the slots flagged for it (map = true in
+					// their cfg node) fire; set switching always does.
+					if (inMap && slot.group != ElkGroups.Global && !ElkConfig.GetSlotMap(slot.id))
+					{
+						Debug.Log("[ELK] " + slot.id + ": not fired in map view (map = false)");
+						continue;
+					}
 
 					// Some controllers deliver one physical press as two
 					// key-down events a frame or two apart, which would flip

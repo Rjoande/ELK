@@ -1,7 +1,7 @@
 // Owns the cfg files in PluginData: one per slot group (ELK.cfg = global
 // master, ELK_Squad.cfg = stock slots, ELK_<Mod>.cfg per supported mod,
-// see ElkGroups), their loading, the in-memory slot->bind and slot->set
-// maps, the generic option store, and writing a single value back to disk
+// see ElkGroups), their loading, the in-memory slot->bind, slot->set and
+// slot->map maps, the generic option store, and writing a single value back to disk
 // (used by the toolbar's capture flow and option clicks). Static and
 // scene-independent on purpose: ElkAddon (Flight scene) and
 // ElkToolbarApp/ElkWindow (Space Center scene) share this one source of
@@ -38,9 +38,10 @@ namespace ELK
 {
 	public static class ElkConfig
 	{
-		public const string Version = "1.0.1";
+		public const string Version = "1.1.0";
 
 		private const string OptSasAutoEngage = "sas_autoengage";
+		private const string OptSasNavball = "sas_navball";
 
 		// ELK.dll sits in GameData/ELK/Plugins/, and PluginData is a SIBLING
 		// of Plugins/ (both directly under GameData/ELK/), not nested inside
@@ -62,6 +63,12 @@ namespace ELK
 			get { return GetBool(ElkGroups.Squad, OptSasAutoEngage, GetBool(ElkGroups.Global, OptSasAutoEngage, true)); }
 		}
 
+		/// <summary>When true, an SAS mode hotkey that selects a mode also brings back a hidden navball, in flight and in map view (see ElkNavball). Lives in ELK_Squad.cfg.</summary>
+		public static bool SasNavball
+		{
+			get { return GetBool(ElkGroups.Squad, OptSasNavball, true); }
+		}
+
 		private static readonly Dictionary<string, ElkBind> binds = new Dictionary<string, ElkBind>();
 
 		public static Dictionary<string, ElkBind> Binds
@@ -77,6 +84,21 @@ namespace ELK
 		{
 			string set;
 			return slotSets.TryGetValue(slotId, out set) ? set : "";
+		}
+
+		// Whether each slot also fires in map view, from the slot node's
+		// "map" value; a slot with no such value falls back to its own
+		// ElkSlot.mapDefault, so cfg files written before the flag existed
+		// need no migration.
+		private static readonly Dictionary<string, bool> slotMap = new Dictionary<string, bool>();
+
+		public static bool GetSlotMap(string slotId)
+		{
+			bool map;
+			if (slotMap.TryGetValue(slotId, out map))
+				return map;
+			ElkSlot slot = ElkSlots.Find(slotId);
+			return slot != null && slot.mapDefault;
 		}
 
 		// Per-group "hotkeys" switch: false hibernates every slot of that
@@ -168,12 +190,19 @@ namespace ELK
 			ToolbarEnabled = true;
 			binds.Clear();
 			slotSets.Clear();
+			slotMap.Clear();
 			groupHotkeys.Clear();
 			options.Clear();
 			for (int i = 0; i < ElkSlots.All.Count; i++)
 			{
 				binds[ElkSlots.All[i].id] = new ElkBind();
 			}
+
+			// Joysticks known by name (DEVICES node of ELK.cfg) must be in
+			// place before any group's keys are parsed: a key may be written
+			// in the "label.Bn" form that needs them.
+			ConfigNode globalRoot = ConfigNode.Load(PathFor(ElkGroups.Find(ElkGroups.Global)));
+			ElkJoysticks.Load((globalRoot == null) ? null : globalRoot.GetNode("ELK"));
 
 			StringBuilder summary = new StringBuilder();
 			for (int g = 0; g < ElkGroups.All.Count; g++)
@@ -236,6 +265,7 @@ namespace ELK
 						bound++;
 					string set = slotNode.GetValue("set");
 					slotSets[slot.id] = (set == null) ? "" : set.Trim();
+					if (bool.TryParse(slotNode.GetValue("map"), out b)) slotMap[slot.id] = b;
 				}
 				if (summary.Length > 0)
 					summary.Append(", ");
@@ -268,6 +298,13 @@ namespace ELK
 			SetSlotValue(slotId, "set", set);
 		}
 
+		/// <summary>Sets whether a slot also fires in map view and persists it.</summary>
+		public static void SetSlotMap(string slotId, bool value)
+		{
+			slotMap[slotId] = value;
+			SetSlotValue(slotId, "map", value ? "true" : "false");
+		}
+
 		/// <summary>
 		/// Copies binds from one slot to another along a two-column map
 		/// (reverse = right to left), overwriting the destination, never
@@ -297,6 +334,16 @@ namespace ELK
 			return lines;
 		}
 
+		/// <summary>Rewrites the DEVICES node of ELK.cfg from ElkJoysticks' current list (called by ElkJoysticks on every change).</summary>
+		public static void SaveDevices()
+		{
+			string path = PathFor(ElkGroups.Find(ElkGroups.Global));
+			ConfigNode root;
+			ConfigNode node = OpenElkNode(path, out root);
+			ElkJoysticks.Save(node);
+			root.Save(path);
+		}
+
 		/// <summary>The mod-wide master switch ("enabled" in ELK.cfg): off, no hotkey fires anywhere; the toolbar stays so it can be switched back on.</summary>
 		public static void SetEnabled(bool value)
 		{
@@ -308,6 +355,12 @@ namespace ELK
 		public static void SetSasAutoEngage(bool value)
 		{
 			SetBool(ElkGroups.Squad, OptSasAutoEngage, value);
+		}
+
+		/// <summary>Sets the "vector key shows the navball" option and persists it to ELK_Squad.cfg.</summary>
+		public static void SetSasNavball(bool value)
+		{
+			SetBool(ElkGroups.Squad, OptSasNavball, value);
 		}
 
 		/// <summary>Switches a group's hotkeys on or off in memory and persists it to that group's file.</summary>
@@ -408,6 +461,7 @@ namespace ELK
 				ConfigNode slotNode = node.AddNode(slot.id);
 				slotNode.AddValue("key", key);
 				slotNode.AddValue("set", set);
+				slotNode.AddValue("map", slot.mapDefault ? "true" : "false");
 			}
 			return copied;
 		}

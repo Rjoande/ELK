@@ -5,7 +5,12 @@
 // ("LeftAlt+Y", "LeftControl+LeftShift+G" — modifiers then primary,
 // '+'-joined literal KeyCode names) so the no-toolbar, hand-edited cfg path
 // stays simple, and a captured bind's on-screen Describe() text is directly
-// usable as the cfg value too.
+// usable as the cfg value too. Joystick buttons are the one twist: a
+// JoystickKButtonN is stored with K as an ELK-logical index resolved
+// through ELK.cfg's DEVICES node (see ElkJoysticks), is displayed as
+// "<label>.B<n>" when that device is known, and that short form is
+// accepted by Parse as well; ToKeySpec() always writes the canonical
+// KeyCode name.
 //
 // Downgraded to C# 5 syntax throughout (no expression-bodied members, no
 // null-conditional operator, no Enum.TryParse<T>): this project builds with
@@ -32,14 +37,18 @@ namespace ELK
 			get { return primary == KeyCode.None; }
 		}
 
-		/// <summary>True on the frame the primary is freshly pressed while every required modifier is held.</summary>
+		/// <summary>True on the frame the primary is freshly pressed while every required modifier is held. Joystick codes are polled where their device is right now (ElkJoysticks.Physical); a device not connected never matches.</summary>
 		public bool Matches()
 		{
-			if (IsNone || !Input.GetKeyDown(primary))
+			if (IsNone)
+				return false;
+			KeyCode key = ElkJoysticks.Physical(primary);
+			if (key == KeyCode.None || !Input.GetKeyDown(key))
 				return false;
 			for (int i = 0; i < modifiers.Count; i++)
 			{
-				if (!Input.GetKey(modifiers[i]))
+				KeyCode mod = ElkJoysticks.Physical(modifiers[i]);
+				if (mod == KeyCode.None || !Input.GetKey(mod))
 					return false;
 			}
 			return true;
@@ -76,26 +85,41 @@ namespace ELK
 			return true;
 		}
 
-		/// <summary>Human-readable form for the toolbar UI and conflict messages, e.g. "LeftShift+J".</summary>
+		/// <summary>Human-readable form for the toolbar UI, the log and conflict messages, e.g. "LeftShift+J" or "VKBsim.B10" for a joystick known by name.</summary>
 		public string Describe()
 		{
-			if (IsNone)
-				return "-";
-			if (modifiers.Count == 0)
-				return primary.ToString();
+			return IsNone ? "-" : Join(true);
+		}
+
+		/// <summary>Cfg "key" value for this bind: canonical KeyCode names only, empty string for IsNone.</summary>
+		public string ToKeySpec()
+		{
+			return IsNone ? "" : Join(false);
+		}
+
+		private string Join(bool labels)
+		{
 			StringBuilder sb = new StringBuilder();
 			for (int i = 0; i < modifiers.Count; i++)
 			{
-				sb.Append(modifiers[i]).Append('+');
+				sb.Append(labels ? ElkJoysticks.Describe(modifiers[i]) : modifiers[i].ToString()).Append('+');
 			}
-			sb.Append(primary);
+			sb.Append(labels ? ElkJoysticks.Describe(primary) : primary.ToString());
 			return sb.ToString();
 		}
 
-		/// <summary>Cfg "key" value for this bind — same text as Describe(), empty string for IsNone.</summary>
-		public string ToKeySpec()
+		/// <summary>One token of a key spec: a literal KeyCode name, or the "label.Bn" form of a joystick known by name.</summary>
+		private static bool ParseToken(string token, out KeyCode code)
 		{
-			return IsNone ? "" : Describe();
+			try
+			{
+				code = (KeyCode)Enum.Parse(typeof(KeyCode), token, true);
+				return true;
+			}
+			catch (ArgumentException)
+			{
+				return ElkJoysticks.TryParse(token, out code);
+			}
 		}
 
 		/// <summary>
@@ -114,11 +138,7 @@ namespace ELK
 			string keyToken = tokens[tokens.Length - 1].Trim();
 
 			KeyCode parsedPrimary;
-			try
-			{
-				parsedPrimary = (KeyCode)Enum.Parse(typeof(KeyCode), keyToken, true);
-			}
-			catch (ArgumentException)
+			if (!ParseToken(keyToken, out parsedPrimary))
 			{
 				Debug.LogWarning("[ELK] unparsable key spec: '" + spec + "'");
 				return bind;
@@ -131,11 +151,7 @@ namespace ELK
 			{
 				string t = tokens[i].Trim();
 				KeyCode parsedMod;
-				try
-				{
-					parsedMod = (KeyCode)Enum.Parse(typeof(KeyCode), t, true);
-				}
-				catch (ArgumentException)
+				if (!ParseToken(t, out parsedMod))
 				{
 					Debug.LogWarning("[ELK] unparsable modifier '" + t + "' in key spec: '" + spec + "'");
 					return new ElkBind();

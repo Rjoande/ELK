@@ -22,6 +22,11 @@
 // (sets_disengage), so the set coming in never fights an autopilot the
 // set going out engaged. Slots that hold nothing engaged (window toggles,
 // PANIC, set switching) have none. Always-on slots are never switched off.
+//
+// `mapDefault` is whether the slot also fires in map view when its cfg node
+// does not say (`map = true/false`, see ElkConfig.GetSlotMap): on for the
+// stock SAS modes, off for everything else. The set-switching slots ignore
+// the flag and always work in map view (see ElkAddon).
 
 using System;
 using System.Collections.Generic;
@@ -43,6 +48,9 @@ namespace ELK
 
 		/// <summary>Switches off what this slot controls when its key set is left (sets_disengage); null = nothing to switch off.</summary>
 		public readonly Action<Vessel> off;
+
+		/// <summary>Whether the slot fires in map view when its cfg node has no "map" value.</summary>
+		public bool mapDefault;
 
 		public ElkSlot(string id, string displayName, Action<Vessel> fire)
 			: this(id, displayName, fire, ElkGroups.Squad, null, null)
@@ -87,29 +95,33 @@ namespace ELK
 			// --- Squad (ELK_Squad.cfg): stock functions ---
 			new ElkSlot("BRAKES_TOGGLE", "Brakes: toggle", FireBrakesToggle, FireBrakesOff),
 
-			new ElkSlot("SAS_STABILITY", "SAS: Stability Assist", SasSlot(VesselAutopilot.AutopilotMode.StabilityAssist), FireSasOff),
-			new ElkSlot("SAS_PROGRADE", "SAS: Prograde", SasSlot(VesselAutopilot.AutopilotMode.Prograde), FireSasOff),
-			new ElkSlot("SAS_RETROGRADE", "SAS: Retrograde", SasSlot(VesselAutopilot.AutopilotMode.Retrograde), FireSasOff),
-			new ElkSlot("SAS_NORMAL", "SAS: Normal", SasSlot(VesselAutopilot.AutopilotMode.Normal), FireSasOff),
-			new ElkSlot("SAS_ANTINORMAL", "SAS: Anti-normal", SasSlot(VesselAutopilot.AutopilotMode.Antinormal), FireSasOff),
+			new ElkSlot("SAS_STABILITY", "SAS: Stability Assist", SasSlot(VesselAutopilot.AutopilotMode.StabilityAssist), FireSasOff) { mapDefault = true },
+			new ElkSlot("SAS_PROGRADE", "SAS: Prograde", SasSlot(VesselAutopilot.AutopilotMode.Prograde), FireSasOff) { mapDefault = true },
+			new ElkSlot("SAS_RETROGRADE", "SAS: Retrograde", SasSlot(VesselAutopilot.AutopilotMode.Retrograde), FireSasOff) { mapDefault = true },
+			new ElkSlot("SAS_NORMAL", "SAS: Normal", SasSlot(VesselAutopilot.AutopilotMode.Normal), FireSasOff) { mapDefault = true },
+			new ElkSlot("SAS_ANTINORMAL", "SAS: Anti-normal", SasSlot(VesselAutopilot.AutopilotMode.Antinormal), FireSasOff) { mapDefault = true },
 			// Stock's enum names are the wrong way round: AutopilotMode.RadialIn
 			// orients the vessel along vessel.upAxis (away from the body, the
 			// navball's radial-out marker) and RadialOut along -upAxis
 			// (verified on KSP 1.12.5 Assembly-CSharp.dll, decompiled;
 			// confirmed in flight). The slot ids and labels follow the
 			// navball, so each maps to the opposite enum value.
-			new ElkSlot("SAS_RADIAL_IN", "SAS: Radial in", SasSlot(VesselAutopilot.AutopilotMode.RadialOut), FireSasOff),
-			new ElkSlot("SAS_RADIAL_OUT", "SAS: Radial out", SasSlot(VesselAutopilot.AutopilotMode.RadialIn), FireSasOff),
-			new ElkSlot("SAS_TARGET", "SAS: Target", SasSlot(VesselAutopilot.AutopilotMode.Target), FireSasOff),
-			new ElkSlot("SAS_ANTITARGET", "SAS: Anti-target", SasSlot(VesselAutopilot.AutopilotMode.AntiTarget), FireSasOff),
-			new ElkSlot("SAS_MANEUVER", "SAS: Maneuver node", SasSlot(VesselAutopilot.AutopilotMode.Maneuver), FireSasOff),
+			new ElkSlot("SAS_RADIAL_IN", "SAS: Radial in", SasSlot(VesselAutopilot.AutopilotMode.RadialOut), FireSasOff) { mapDefault = true },
+			new ElkSlot("SAS_RADIAL_OUT", "SAS: Radial out", SasSlot(VesselAutopilot.AutopilotMode.RadialIn), FireSasOff) { mapDefault = true },
+			new ElkSlot("SAS_TARGET", "SAS: Target", SasSlot(VesselAutopilot.AutopilotMode.Target), FireSasOff) { mapDefault = true },
+			new ElkSlot("SAS_ANTITARGET", "SAS: Anti-target", SasSlot(VesselAutopilot.AutopilotMode.AntiTarget), FireSasOff) { mapDefault = true },
+			new ElkSlot("SAS_MANEUVER", "SAS: Maneuver node", SasSlot(VesselAutopilot.AutopilotMode.Maneuver), FireSasOff) { mapDefault = true },
 
 			// --- AtmosphereAutopilot ---
 			// All through ElkAaBridge (reflection). Every slot is a no-op
-			// when AA is absent, when AA has no module map for the active
-			// vessel yet, or - for Cruise/FBW slots - when that controller
-			// is off and aa_autoengage is false. See the bridge header for
-			// the AA members behind each action.
+			// when AA is absent or has no module map for the active vessel
+			// yet. aa_autoengage applies to the Cruise mode/hold/sync keys
+			// and the FBW toggles (controller off + option off = no-op; a
+			// toggle that switches its controller on forces "on"); the
+			// select, FD and APR keys always switch on; the bug encoders,
+			// speed control and thrust balancing only touch an existing
+			// module; keys input mode is a static preference. See the
+			// bridge header for the AA members behind each action.
 			new ElkSlot("AA_MASTER_TOGGLE", "AA: Master switch", ElkAaBridge.ToggleMaster, ElkGroups.AtmosphereAutopilot, ElkAaBridge.IsInstalled, ElkAaBridge.MasterOff),
 			new ElkSlot("AA_FD_TOGGLE", "AA: FD (Cruise <-> FBW)", ElkAaBridge.ToggleFd, ElkGroups.AtmosphereAutopilot, ElkAaBridge.IsInstalled, ElkAaBridge.MasterOff),
 			new ElkSlot("AA_GUI_TOGGLE", "AA: Show/hide window", ElkAaBridge.ToggleGui, ElkGroups.AtmosphereAutopilot, ElkAaBridge.IsInstalled, ElkAaBridge.MasterOff),
@@ -139,6 +151,10 @@ namespace ELK
 			// controller is active (AA's own rule), silent otherwise.
 			new ElkSlot("AA_SPEED_CONTROL", "AA: Speed control", ElkAaBridge.SpeedControlToggle, ElkGroups.AtmosphereAutopilot, ElkAaBridge.IsInstalled, ElkAaBridge.MasterOff),
 			new ElkSlot("AA_THRUST_BALANCING", "AA: Thrust balancing", ElkAaBridge.ThrustBalancingToggle, ElkGroups.AtmosphereAutopilot, ElkAaBridge.IsInstalled, ElkAaBridge.MasterOff),
+			// AtmosphereApproach (AA add-on): row shown only with its DLL
+			// loaded. Selects the Approach controller first, like AAPR's own
+			// hotkey; arming without a tuned runway is refused by AAPR.
+			new ElkSlot("AA_APR_TOGGLE", "APR: Arm/disarm", ElkAaBridge.ApproachArmToggle, ElkGroups.AtmosphereAutopilot, ElkAaBridge.IsApproachInstalled, ElkAaBridge.MasterOff),
 
 			// --- MechJeb2, tab 1: MechJeb's own action-group actions, by name ---
 			// Every one is a no-op with no MechJeb aboard the active vessel,
@@ -277,6 +293,13 @@ namespace ELK
 				if (!vessel.Autopilot.Enabled || vessel.Autopilot.Mode != mode)
 				{
 					vessel.Autopilot.Enable(mode);
+				}
+
+				// Only reached when the key did select a mode: a press that
+				// no-ops above leaves a hidden navball hidden.
+				if (ElkConfig.SasNavball)
+				{
+					ElkNavball.Show();
 				}
 			};
 		}

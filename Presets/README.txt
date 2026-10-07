@@ -2,10 +2,24 @@
  ELK - Presets
 ==============================================================================
 
-A preset is nothing more than a ready-made ELK.cfg: the same config file the
-mod ships with, but with the "key" fields already filled in. There is no
-preset format, no preset loader, no in-game preset browser - installing one
-means putting its ELK.cfg where the mod looks for it.
+A preset is nothing more than a ready-made ELK config file with the "key"
+fields already filled in. There is no preset format, no preset loader, no
+in-game preset browser - installing one means putting the file where the
+mod looks for it.
+
+Since ELK 1.1.0 the hotkeys are split over one file per tab of the toolbar
+window, all in GameData/ELK/PluginData/:
+
+    ELK.cfg                       global options and the key-set hotkeys
+    ELK_Squad.cfg                 stock Brakes and SAS modes
+    ELK_AtmosphereAutopilot.cfg   AtmosphereAutopilot (and AtmosphereApproach)
+    ELK_MechJeb2.cfg              MechJeb2 (both MechJeb tabs)
+    ELK_NavUtilities.cfg          NavUtilities
+
+A preset is any of the per-tab files (one or several), never ELK.cfg: the
+global options and the list of key sets stay yours. The mod files are
+created by ELK the first time it runs with that mod installed; a preset for
+a mod simply replaces that file.
 
 
 ------------------------------------------------------------------------------
@@ -13,17 +27,17 @@ means putting its ELK.cfg where the mod looks for it.
 ------------------------------------------------------------------------------
 
     Presets/
-        README.txt              <- this file
+        README.txt                <- this file
         <PresetName>/
-            ELK.cfg             <- the preset itself
+            ELK_Squad.cfg         <- the preset itself (one or more files)
+            ELK_MechJeb2.cfg
         <AnotherPreset>/
-            ELK.cfg
+            ELK_Squad.cfg
 
-One folder per preset, named after the preset; the file inside is always
-called ELK.cfg. The file name is not a convention you can bend: ELK reads
-exactly one hard-coded path and never scans for alternatives (see "Why the
-name matters" below). Giving each preset its own folder is what lets several
-of them coexist here without renaming the file.
+One folder per preset, named after the preset; the files inside keep the
+exact names above. ELK reads hard-coded paths and never scans for
+alternatives (see "Why the name matters" below), so a preset folder is
+only a way to keep several of them side by side here.
 
 
 ------------------------------------------------------------------------------
@@ -31,21 +45,17 @@ of them coexist here without renaming the file.
 ------------------------------------------------------------------------------
 
   1. Quit KSP (or at least leave the Space Center and Flight scenes, and
-     close the ELK toolbar window - the toolbar rewrites the config file
+     close the ELK toolbar window - the toolbar rewrites a config file
      whenever it captures or clears a key, and would overwrite your new
      file).
 
-  2. Back up your current config if you care about it:
+  2. Back up the file(s) you are about to replace if you care about them:
 
-         GameData/ELK/PluginData/ELK.cfg   ->   ELK.cfg.bak
+         GameData/ELK/PluginData/ELK_Squad.cfg   ->   ELK_Squad.cfg.bak
 
-  3. Copy the preset's ELK.cfg over that same path, replacing the existing
-     file:
-
-         GameData/ELK/PluginData/ELK.cfg
-
-     Copy the file itself, not the preset folder: there must be no
-     "<PresetName>" directory left in PluginData.
+  3. Copy each preset file over the same name in GameData/ELK/PluginData/,
+     replacing the existing one. Copy the files themselves, not the preset
+     folder: there must be no "<PresetName>" directory left in PluginData.
 
   4. Start KSP. The config is re-read every time you enter the Space Center
      or Flight, so if the game was already running, switching scenes is
@@ -65,14 +75,15 @@ about any "key" value it could not parse.
  WHY THE NAME MATTERS
 ------------------------------------------------------------------------------
 
-ELK builds its config path from its own assembly location: the folder above
-Plugins/ (that is, the mod root), then PluginData/ELK.cfg. Both the folder
-and the file name are fixed in code. A file called MyPreset.cfg, or an
-ELK.cfg sitting one folder deeper, is simply never read - the mod logs
-"config not found" and every hotkey stays unbound.
+ELK builds its config paths from its own assembly location: the folder
+above Plugins/ (that is, the mod root), then PluginData/<file>.cfg. Both
+the folder and the file names are fixed in code. A file called
+MyPreset.cfg, or an ELK_Squad.cfg sitting one folder deeper, is simply
+never read.
 
 That path also means a preset only ever applies to the ELK install it is
-copied into: it is a per-install file, not a per-save one.
+copied into: it is a per-install file, not a per-save one. (The active key
+set, on the other hand, is remembered per vessel inside the save game.)
 
 
 ------------------------------------------------------------------------------
@@ -80,28 +91,32 @@ copied into: it is a per-install file, not a per-save one.
 ------------------------------------------------------------------------------
 
 Easiest way: bind the keys you want in-game through the toolbar, quit KSP,
-then copy GameData/ELK/PluginData/ELK.cfg out - that file is already a
-valid preset.
+then copy the per-tab file(s) out of GameData/ELK/PluginData/ - they are
+already valid presets.
 
-One caveat: the toolbar writes the file through KSP's own ConfigNode writer,
+One caveat: the toolbar writes a file through KSP's own ConfigNode writer,
 which does not preserve "//" comments. A cfg that has been through a capture
 has lost the shipped explanatory header, so add a short one back by hand
 before sharing (see the template below).
 
-Hand-editing works just as well. The structure is:
+Hand-editing works just as well. The structure of every per-tab file is:
 
     ELK
     {
-        enabled = true
-        toolbar = true
+        hotkeys = true
+        sas_autoengage = true       // options of that tab, if any
 
         BRAKES_TOGGLE
         {
             key = LeftAlt+B
+            set =
+            map = false
         }
         SAS_RETROGRADE
         {
             key = LeftAlt+R
+            set = Stock
+            map = true
         }
     }
 
@@ -109,31 +124,25 @@ Hand-editing works just as well. The structure is:
     line. Stock KSP's config parser does not handle inline
     "NODE { key = X }" syntax.
   - A slot you leave out entirely is simply unbound - a preset does not have
-    to list all eleven.
-  - Leave "enabled = true" and "toolbar = true" alone unless the preset has
-    a reason to change them; turning the toolbar off in a shared preset hides
-    the one UI a user has for fixing your key choices.
+    to list every slot. The slot ids (one per row of the toolbar window) are
+    listed in the main README.
+  - "set": the key set the slot belongs to; empty = active in every set. A
+    preset may fill it in, but the set names themselves live in ELK.cfg,
+    which a preset should not touch: say in your header which "sets ="
+    line it expects.
+  - "map": true lets the hotkey fire in map view too. Leave it out and the
+    slot keeps its default (on for the stock SAS modes, off elsewhere).
+  - Leave "hotkeys = true" alone unless the preset has a reason to change
+    it.
 
 KEY FORMAT: optional modifiers separated by "+", then the main key, all
 literal UnityEngine.KeyCode names - for example "Y", "LeftAlt+Y",
 "LeftControl+LeftShift+G". Names are matched case-insensitively and
 surrounding spaces are ignored, but anything that is not a real KeyCode name
 makes that one slot unbound (with a warning in KSP.log). An empty value
-means "no key".
-
-SLOT IDS (all eleven, with the label the toolbar shows):
-
-    BRAKES_TOGGLE       Brakes: toggle
-    SAS_STABILITY       SAS: Stability Assist
-    SAS_PROGRADE        SAS: Prograde
-    SAS_RETROGRADE      SAS: Retrograde
-    SAS_NORMAL          SAS: Normal
-    SAS_ANTINORMAL      SAS: Anti-normal
-    SAS_RADIAL_IN       SAS: Radial in
-    SAS_RADIAL_OUT      SAS: Radial out
-    SAS_TARGET          SAS: Target
-    SAS_ANTITARGET      SAS: Anti-target
-    SAS_MANEUVER        SAS: Maneuver node
+means "no key". Joystick buttons ("Joystick1Button10") are tied to the
+device by name through the DEVICES node of ELK.cfg of the person who
+captured them, so they rarely travel well in a preset.
 
 ONE KEY TO AVOID: do not bind BRAKES_TOGGLE to whatever key stock Brakes
 uses (Settings > Input > BRAKES, "B" by default), not even with a modifier.
@@ -145,22 +154,22 @@ them.
  SHARING A PRESET
 ------------------------------------------------------------------------------
 
-Nothing has to go through this repo: a preset is one small text file, so a
-gist, a forum post or a zip works just as well.
+Nothing has to go through this repo: a preset is one or two small text
+files, so a gist, a forum post or a zip works just as well.
 
 To contribute one here, add a folder named after the preset with your
-ELK.cfg inside it, and start the file with a header comment saying what it
+file(s) inside it, and start each file with a header comment saying what it
 is:
 
-    // <Preset name> - ELK preset
+    // <Preset name> - ELK preset (<tab>)
     // Author: <you>
     // <One or two lines: the idea behind the layout, e.g. which hand it
     // keeps free, which other mod's bindings it stays clear of.>
     //
-    // Install: copy this file to GameData/ELK/PluginData/ELK.cfg
+    // Install: copy this file to GameData/ELK/PluginData/ELK_<Tab>.cfg
     // (replacing the existing one) with KSP closed. See ../README.txt.
 
 Useful things to mention in that header: whether the layout assumes a
-specific keyboard layout, and any other mod whose default bindings you
-deliberately worked around. Keys that are unbound in stock KSP are the safest
-material to build a preset from.
+specific keyboard layout, which key sets it expects, and any other mod
+whose default bindings you deliberately worked around. Keys that are
+unbound in stock KSP are the safest material to build a preset from.

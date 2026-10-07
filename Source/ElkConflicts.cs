@@ -50,18 +50,22 @@ namespace ELK
 				}
 			}
 
+			// Stock keybindings hold the physical joystick index: compare
+			// against where the candidate's device is right now (None while
+			// it is not connected: nothing can clash with it).
+			KeyCode physical = ElkJoysticks.Physical(candidate.primary);
 			foreach (FieldInfo field in typeof(GameSettings).GetFields(BindingFlags.Public | BindingFlags.Static))
 			{
-				if (field.FieldType != typeof(KeyBinding))
+				if (field.FieldType != typeof(KeyBinding) || physical == KeyCode.None)
 					continue;
 				KeyBinding kb = (KeyBinding)field.GetValue(null);
 				if (kb == null)
 					continue;
-				if (kb.primary != null && !kb.primary.isNone && kb.primary.code == candidate.primary)
+				if (kb.primary != null && !kb.primary.isNone && kb.primary.code == physical)
 				{
 					hits.Add("stock '" + field.Name + "'");
 				}
-				else if (kb.secondary != null && !kb.secondary.isNone && kb.secondary.code == candidate.primary)
+				else if (kb.secondary != null && !kb.secondary.isNone && kb.secondary.code == physical)
 				{
 					hits.Add("stock '" + field.Name + "' (secondary)");
 				}

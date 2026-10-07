@@ -63,6 +63,10 @@ namespace ELK
 		public const string OptAutoEngage = "mj_autoengage";
 		public const string OptAutoShow = "mj_autoshow";
 		public const string OptTransStep = "mj_trans_step";
+		public const string OptNavball = "mj_navball";
+
+		private const string SmartAssModule = "MechJebModuleSmartASS";
+		private const string SmartAssOffAction = "OnDeactivateSmartASSAction";
 
 		private static bool installChecked;
 		private static bool installed;
@@ -124,6 +128,12 @@ namespace ELK
 		public static bool AutoShow
 		{
 			get { return ElkConfig.GetBool(ElkGroups.MechJeb2, OptAutoShow, false); }
+		}
+
+		/// <summary>When true, a SmartASS key that engages a vector also brings back a hidden navball (see ElkNavball).</summary>
+		public static bool Navball
+		{
+			get { return ElkConfig.GetBool(ElkGroups.MechJeb2, OptNavball, false); }
 		}
 
 		public static float TransStep
@@ -289,17 +299,28 @@ namespace ELK
 		/// <summary>Runs one of MechJebCore's own action-group methods, vessel-wide through MechJeb's master core; with mj_autoshow, opens the window of the module it drives.</summary>
 		public static void FireAction(Vessel vessel, string actionName)
 		{
-			FireAction(vessel, actionName, AutoShow);
+			if (!FireAction(vessel, actionName, AutoShow))
+				return;
+			// mj_navball: a SmartASS vector (not its Off) brings back a
+			// hidden navball. The action returns nothing, so "it engaged"
+			// is read from the gate MechJeb itself applies: the SmartASS
+			// module exists and is not Hidden.
+			if (Navball && actionName != SmartAssOffAction && WindowFor(actionName) == SmartAssModule
+				&& VisibleModule(Master(vessel), SmartAssModule) != null)
+			{
+				ElkNavball.Show();
+			}
 		}
 
-		private static void FireAction(Vessel vessel, string actionName, bool show)
+		/// <summary>True if the action was invoked without throwing.</summary>
+		private static bool FireAction(Vessel vessel, string actionName, bool show)
 		{
 			object core = AnyCore(vessel);
 			if (core == null)
-				return;
+				return false;
 			MethodInfo action;
 			if (!actions.TryGetValue(actionName, out action) || action == null)
-				return;
+				return false;
 			try
 			{
 				action.Invoke(core, new object[] { new KSPActionParam(KSPActionGroup.None, KSPActionType.Activate) });
@@ -307,17 +328,18 @@ namespace ELK
 			catch (Exception e)
 			{
 				WarnInvoke(actionName, e);
-				return;
+				return false;
 			}
 			if (show)
 			{
 				Show(VisibleModule(Master(vessel), WindowFor(actionName)));
 			}
+			return true;
 		}
 
 		// ---- `off` actions for sets_disengage: switch off, never open a window ----
 
-		public static void SmartAssOff(Vessel vessel) { FireAction(vessel, "OnDeactivateSmartASSAction", false); }
+		public static void SmartAssOff(Vessel vessel) { FireAction(vessel, SmartAssOffAction, false); }
 		public static void TransOff(Vessel vessel) { FireAction(vessel, "OnTranslatronOffAction", false); }
 
 		/// <summary>Abort the node executor; no-op when it is not running.</summary>
@@ -361,8 +383,8 @@ namespace ELK
 		/// <summary>The display module whose window shows what an action just did.</summary>
 		private static string WindowFor(string actionName)
 		{
-			if (actionName.StartsWith("OnOrbit") || actionName == "OnKillRotationAction" || actionName == "OnDeactivateSmartASSAction")
-				return "MechJebModuleSmartASS";
+			if (actionName.StartsWith("OnOrbit") || actionName == "OnKillRotationAction" || actionName == SmartAssOffAction)
+				return SmartAssModule;
 			if (actionName.StartsWith("OnTranslatron") || actionName == "OnPanicAction")
 				return "MechJebModuleTranslatron";
 			if (actionName.StartsWith("OnLand"))
@@ -467,7 +489,7 @@ namespace ELK
 		private static void SmartAss(Vessel vessel, object target, bool needTargetMode)
 		{
 			object master = Master(vessel);
-			object sass = VisibleModule(master, "MechJebModuleSmartASS");
+			object sass = VisibleModule(master, SmartAssModule);
 			if (sass == null || sassTarget == null || sassEngage == null || target == null)
 				return;
 			try
@@ -487,6 +509,10 @@ namespace ELK
 				return;
 			}
 			Show(sass);
+			if (Navball)
+			{
+				ElkNavball.Show();
+			}
 		}
 
 		/// <summary>SmartASS NODE: only with a planned maneuver node (the button MechJeb shows only with patched conics unlocked).</summary>

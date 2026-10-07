@@ -85,6 +85,7 @@ namespace ELK
 					new KeyValuePair<string, string>(ElkMjBridge.OptAutoEngage, "true"),
 					new KeyValuePair<string, string>(ElkMjBridge.OptAutoShow, "false"),
 					new KeyValuePair<string, string>(ElkMjBridge.OptTransStep, "1"),
+					new KeyValuePair<string, string>(ElkMjBridge.OptNavball, "false"),
 				}),
 			new ElkGroup(MechJeb2Plus, "MechJeb2+", "ELK_MechJeb2.cfg", ElkMjBridge.IsInstalled, null, null),
 			new ElkGroup(NavUtilities, "NavUtilities", "ELK_NavUtilities.cfg", ElkNavBridge.IsInstalled, null, null),

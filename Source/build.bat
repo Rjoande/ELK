@@ -2,8 +2,9 @@
 rem Builds ELK.dll against KSP's own managed assemblies plus the shared
 rem ToolbarControl install (no SDK or NuGet package required - uses the C#
 rem compiler bundled with the .NET Framework). The DLL is written into this
-rem repo's GameData/ELK/Plugins, then copied into the KSP install below.
-rem Set KSP to your own install path if it differs.
+rem repo's GameData/ELK/Plugins only; copying it into a KSP install is up
+rem to you. KSP below is used for the reference assemblies: set it to your
+rem own install path if it differs.
 
 set "KSP=E:\SteamBackup\Kerbal Space Program"
 set "MANAGED=%KSP%\KSP_x64_Data\Managed"
@@ -24,6 +25,7 @@ set "CSC=C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
  /r:"%MANAGED%\Assembly-CSharp.dll" ^
  /r:"%TOOLBAR%\ToolbarControl.dll" ^
  "%~dp0ElkBind.cs" ^
+ "%~dp0ElkJoysticks.cs" ^
  "%~dp0ElkCapture.cs" ^
  "%~dp0ElkConflicts.cs" ^
  "%~dp0ElkConfig.cs" ^
@@ -31,6 +33,7 @@ set "CSC=C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
  "%~dp0ElkGroups.cs" ^
  "%~dp0ElkSets.cs" ^
  "%~dp0ElkVesselModule.cs" ^
+ "%~dp0ElkNavball.cs" ^
  "%~dp0Bridges\ElkReflection.cs" ^
  "%~dp0Bridges\ElkNavBridge.cs" ^
  "%~dp0Bridges\ElkAaKeys.cs" ^
@@ -41,5 +44,4 @@ set "CSC=C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
  "%~dp0ElkWindow.cs"
 
 if not %errorlevel%==0 (echo BUILD FAILED & exit /b 1)
-copy /y "%OUT%\ELK.dll" "%KSP%\GameData\ELK\Plugins\ELK.dll" >nul
-if %errorlevel%==0 (echo OK: ELK.dll built and deployed) else (echo BUILD OK but deploy FAILED - is KSP running?)
+echo OK: ELK.dll built into "%OUT%"

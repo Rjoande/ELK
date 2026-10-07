@@ -18,6 +18,11 @@
 //   from here goes to BOTH the file and the field.
 // - KeyCode values are stored as Enum.Parse-able literals ("P", "None").
 //
+// - AtmosphereApproach (AAPR) declares its APR key the same way, with AA's
+//   own attributes, in its own DLL: the scan covers that assembly too when
+//   it is loaded, so the key shows up in the scanner and in Import /
+//   Export / Restore like any AA key (node "Approach_controller").
+//
 // Nothing here runs unless the player clicks a button on the AA tab or
 // captures a key (conflict scan): ELK never touches AA's file on its own.
 
@@ -70,6 +75,7 @@ namespace ELK
 			{ "AA_FBW_COORD_TURN", "coord_turn_keycode" },
 			{ "AA_SPEED_CONTROL", "spd_control_toggle_key" },
 			{ "AA_THRUST_BALANCING", "balancing_toggle_key" },
+			{ "AA_APR_TOGGLE", "apr_arm_key" },   // AtmosphereApproach
 		};
 
 		// Declaring class -> Global_settings.txt node, used only when the file
@@ -81,6 +87,7 @@ namespace ELK
 			{ "StandardFlyByWire", "Standard_Fly-By-Wire" },
 			{ "ProgradeThrustController", "Prograde_thrust_controller" },
 			{ "FlightModel", "Flight_model" },
+			{ "ApproachController", "Approach_controller" },   // AtmosphereApproach
 		};
 
 		// AA's compiled defaults, used by Restore when no backup exists.
@@ -136,6 +143,15 @@ namespace ELK
 			FieldInfo dataNameField = (serialAttr == null) ? null
 				: ElkReflection.FindField(serialAttr, "data_name", BindingFlags.Public | BindingFlags.Instance, ModLabel);
 
+			Scan(assembly, hotkeyAttr, nameField, serialAttr, dataNameField);
+			Assembly apr = ElkAaBridge.ApproachAssembly;
+			if (apr != null)
+				Scan(apr, hotkeyAttr, nameField, serialAttr, dataNameField);
+			Debug.Log("[ELK] " + ModLabel + ": " + hotkeys.Count + " native hotkeys found" + (apr != null ? " (AtmosphereApproach included)" : ""));
+		}
+
+		private static void Scan(Assembly assembly, Type hotkeyAttr, FieldInfo nameField, Type serialAttr, FieldInfo dataNameField)
+		{
 			Type[] types;
 			try
 			{
@@ -147,7 +163,7 @@ namespace ELK
 			}
 			catch (Exception e)
 			{
-				Debug.LogWarning("[ELK] " + ModLabel + ": cannot list types: " + e.Message);
+				Debug.LogWarning("[ELK] " + ModLabel + ": cannot list types of " + assembly.GetName().Name + ": " + e.Message);
 				return;
 			}
 
@@ -194,7 +210,6 @@ namespace ELK
 					hotkeys.Add(hk);
 				}
 			}
-			Debug.Log("[ELK] " + ModLabel + ": " + hotkeys.Count + " native hotkeys found");
 		}
 
 		private static string NodeFor(string className)
@@ -320,22 +335,37 @@ namespace ELK
 			}
 		}
 
-		/// <summary>Snapshot of every AA key as it is now, written once and never overwritten. True if a backup exists afterwards.</summary>
+		/// <summary>
+		/// Snapshot of every AA key as it is now. Written once; a value already
+		/// in the backup is never overwritten, but a key the backup does not
+		/// know yet (a hotkey added by an AA update or by AtmosphereApproach
+		/// installed later) is appended with its current value. True if a
+		/// backup exists afterwards.
+		/// </summary>
 		public static bool EnsureBackup()
 		{
-			if (BackupExists)
-				return true;
-			ConfigNode root = new ConfigNode();
-			ConfigNode node = root.AddNode(BackupNodeName);
+			ConfigNode root = BackupExists ? ConfigNode.Load(BackupPath) : null;
+			bool existed = root != null;
+			if (root == null)
+				root = new ConfigNode();
+			ConfigNode node = root.GetNode(BackupNodeName);
+			if (node == null)
+				node = root.AddNode(BackupNodeName);
 			List<ElkAaHotkey> all = Hotkeys;
+			int added = 0;
 			for (int i = 0; i < all.Count; i++)
 			{
+				if (node.HasValue(all[i].key))
+					continue;
 				node.AddValue(all[i].key, Read(all[i]).ToString());
+				added++;
 			}
+			if (existed && added == 0)
+				return true;
 			try
 			{
 				root.Save(BackupPath);
-				Debug.Log("[ELK] " + ModLabel + ": native keys backed up to " + BackupPath);
+				Debug.Log("[ELK] " + ModLabel + ": native keys " + (existed ? added + " key(s) added to backup " : "backed up to ") + BackupPath);
 				return true;
 			}
 			catch (Exception e)
@@ -365,7 +395,8 @@ namespace ELK
 				if (kc == KeyCode.None)
 					continue;
 				ElkBind bind = new ElkBind();
-				bind.primary = kc;
+				// AA holds the physical joystick index; ELK stores the device.
+				bind.primary = ElkJoysticks.Logical(kc);
 				ElkConfig.SetBind(slotId, bind);
 				Write(hk, KeyCode.None);
 				imported++;
@@ -407,10 +438,19 @@ namespace ELK
 					skipped.Add("  " + slotId + " (" + bind.Describe() + "): AA keys have no modifiers");
 					continue;
 				}
-				Write(hk, bind.primary);
+				// AA polls the physical joystick index: export the button
+				// where the device is right now (a device not connected has
+				// no index to give).
+				KeyCode physical = ElkJoysticks.Physical(bind.primary);
+				if (physical == KeyCode.None)
+				{
+					skipped.Add("  " + slotId + " (" + bind.Describe() + "): joystick not connected");
+					continue;
+				}
+				Write(hk, physical);
 				ElkConfig.SetBind(slotId, new ElkBind());
 				exported++;
-				lines.Add("  " + slotId + " (" + bind.primary + ") -> AA " + hk.displayName);
+				lines.Add("  " + slotId + " (" + bind.Describe() + ") -> AA " + hk.displayName);
 			}
 			lines.Insert(0, exported == 0 ? "No ELK key to export." : "Exported " + exported + " key(s) to AA and cleared them here:");
 			if (skipped.Count > 0)
@@ -457,7 +497,7 @@ namespace ELK
 			ElkBind probe = new ElkBind();
 			for (int i = 0; i < all.Count; i++)
 			{
-				probe.primary = Read(all[i]);
+				probe.primary = ElkJoysticks.LogicalIfKnown(Read(all[i]));
 				if (probe.IsNone)
 					continue;
 				List<string> hits = ElkConflicts.Describe(probe, null, ElkConfig.Binds);
@@ -486,11 +526,16 @@ namespace ELK
 			List<string> hits = new List<string>();
 			if (candidate == null || candidate.IsNone)
 				return hits;
+			// AA keys are physical joystick indexes: compare against where
+			// the candidate's device is right now.
+			KeyCode physical = ElkJoysticks.Physical(candidate.primary);
+			if (physical == KeyCode.None)
+				return hits;
 			List<ElkAaHotkey> all = Hotkeys;
 			for (int i = 0; i < all.Count; i++)
 			{
-				if (Read(all[i]) == candidate.primary)
-					hits.Add("AtmosphereAutopilot '" + all[i].displayName + "' (" + candidate.primary + ")");
+				if (Read(all[i]) == physical)
+					hits.Add("AtmosphereAutopilot '" + all[i].displayName + "' (" + candidate.Describe() + ")");
 			}
 			return hits;
 		}
