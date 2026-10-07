@@ -17,3 +17,6 @@ Thumbs.db
 # MSBuild output (Directory.Build.props sends it to LOCALAPPDATA/ELK; this is a safety net)
 Source/bin/
 Source/obj/
+
+# Visual Studio per-user state
+Source/.vs/

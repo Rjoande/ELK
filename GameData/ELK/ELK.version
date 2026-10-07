@@ -1,0 +1,30 @@
+{
+    "NAME": "ELK",
+    "URL": "https://raw.githubusercontent.com/Rjoande/ELK/main/GameData/ELK/ELK.version",
+    "DOWNLOAD": "https://github.com/Rjoande/ELK/releases/latest",
+    "GITHUB": {
+        "USERNAME": "Rjoande",
+        "REPOSITORY": "ELK",
+        "ALLOW_PRE_RELEASE": false
+    },
+    "VERSION": {
+        "MAJOR": 1,
+        "MINOR": 1,
+        "PATCH": 0
+    },
+    "KSP_VERSION": {
+        "MAJOR": 1,
+        "MINOR": 12,
+        "PATCH": 5
+    },
+    "KSP_VERSION_MIN": {
+        "MAJOR": 1,
+        "MINOR": 12,
+        "PATCH": 0
+    },
+    "KSP_VERSION_MAX": {
+        "MAJOR": 1,
+        "MINOR": 12,
+        "PATCH": 99
+    }
+}
