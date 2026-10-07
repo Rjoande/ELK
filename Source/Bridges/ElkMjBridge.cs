@@ -1,51 +1,6 @@
-// MechJeb2 reached purely by reflection: ELK never references MechJeb2.dll
-// (GPL-3) and copies none of its code; a missing or reshaped MechJeb only
-// turns the affected slots into no-ops. Two layers, both verified against
-// MechJeb2 2.15.3.0, decompiled:
-//
-// Layer 1 - the 18 [KSPAction] methods MechJebCore already exposes
-// (public void OnXAction(KSPActionParam)), invoked by name on ANY
-// MechJebCore PartModule of the ACTIVE vessel. Each of them starts with
-// vessel.GetMasterMechJeb() (first core with `running` on that vessel,
-// cached per FixedUpdate and vessel id, rebound on vessel change and
-// modification), so the effect is vessel-wide whichever part is used,
-// exactly like an action group; a stock action group invokes it once per
-// core, ELK once. Nothing is cached across presses: the vessel is looked
-// up on every key press. Names stable across MechJeb versions.
-//
-// Layer 2 - what the actions do not cover, through the same master core:
-//   MuMech.VesselExtensions.GetMasterMechJeb(Vessel)    public static
-//   MechJebCore.GetComputerModule(string typeName)     public, case-insensitive
-//   MechJebCore.Thrust / Landing / Node / Target        public fields
-//   MechJebCore.Ascent                                  public property = AscentSettings.AscentAutopilot
-//   ComputerModule.Enabled (property), DisplayModule.Hidden (field)
-//   MechJebModuleSmartASS: public Mode mode, public Target target, Engage(bool resetPID)
-//       (nested enums Mode / Target); the NODE button sits outside the
-//       mode switch, TARGET_PLUS/MINUS only exist in Mode.TARGET
-//   MechJebModuleTranslatron.SetMode(MechJebModuleThrustController.TMode)
-//   MechJebModuleTranslatron.trans_spd: public EditableDouble field, the
-//       editable "Speed" box of the window (persisted in the save)
-//   EditableDoubleMult.Val: public double property; its setter also
-//       refreshes the box text
-//   MechJebModuleThrustController: public TMode Tmode (property), public float TransSpdAct
-//       (the live setpoint the controller flies), public bool TransKillH
-//       (the Kill H/S checkbox; read only while Tmode is KEEP_VERTICAL). The window's +/0/-
-//       buttons and "Set speed" write trans_spd FIRST and then copy it
-//       into TransSpdAct; SetMode(newMode) copies trans_spd into
-//       TransSpdAct too. Writing TransSpdAct alone (what MechJeb's own
-//       ZeroSpeed/PlusOne/MinusOne actions do) leaves the box stale and
-//       the next button press or mode change reverts the change, so the
-//       ELK speed slots write both, in that order.
-//   MechJebModuleTargetController: public bool NormalTargetExists / PositionTargetExists
-//   MechJebModuleLandingAutopilot: LandAtPositionTarget(object), StopLanding(), Enabled
-//   MechJebModuleNodeExecutor: ExecuteOneNode(object), Abort(), Enabled
-//   MechJebModuleMenu.ShowHideWindow()
-// Gates copied from MechJeb's own UI: a module that is Hidden (locked in
-// career) is never driven; "land at target" needs a position target and a
-// vessel not landed; "execute node" needs a planned node with a burn
-// vector. The `controller` object handed to Landing/Node is the same
-// display module MechJeb's buttons pass (Landing Guidance, Maneuver
-// Planner): its Users pool works by object identity.
+// MechJeb2 by reflection only. Layer 1: the [KSPAction] methods of MechJebCore
+// by name; layer 2: modules of the master core (SmartASS, Translatron,
+// Landing, Node) with the same gates as MechJeb's UI. Verified on 2.15.3.0.
 
 using System;
 using System.Collections.Generic;
@@ -301,10 +256,8 @@ namespace ELK
 		{
 			if (!FireAction(vessel, actionName, AutoShow))
 				return;
-			// mj_navball: a SmartASS vector (not its Off) brings back a
-			// hidden navball. The action returns nothing, so "it engaged"
-			// is read from the gate MechJeb itself applies: the SmartASS
-			// module exists and is not Hidden.
+			// mj_navball: a SmartASS vector (not Off) reopens the navball. Engaged is
+			// read from MechJeb's own gate: SmartASS module exists and is not Hidden.
 			if (Navball && actionName != SmartAssOffAction && WindowFor(actionName) == SmartAssModule
 				&& VisibleModule(Master(vessel), SmartAssModule) != null)
 			{
@@ -591,13 +544,9 @@ namespace ELK
 			Show(translatron);
 		}
 
-		/// <summary>
-		/// What the window's +/0/- buttons do: the Speed box (trans_spd) gets
-		/// `delta` added, or `absolute` when `relative` is false, and the box is
-		/// then copied into the controller's TransSpdAct. With the Translatron
-		/// OFF, mj_autoengage first engages KEEP_VERTICAL (otherwise the change
-		/// would be invisible), else no-op.
-		/// </summary>
+		/// <summary>Window +/0/- buttons: trans_spd gets delta (or absolute), then is copied
+		/// into TransSpdAct. Translatron OFF: mj_autoengage engages KEEP_VERTICAL,
+		/// else no-op.</summary>
 		private static void TransSpeed(Vessel vessel, bool relative, double delta, double absolute)
 		{
 			object thrust;
@@ -634,13 +583,9 @@ namespace ELK
 		/// <summary>The window's "0" button; not MechJeb's OnTranslatronZeroSpeedAction, which writes TransSpdAct only.</summary>
 		public static void TransZero(Vessel vessel) { TransSpeed(vessel, false, 0.0, 0.0); }
 
-		/// <summary>
-		/// Kill H/S: with the Translatron running, flips the flag like MechJeb's
-		/// own action. With it OFF the flag alone is invisible (it only acts in
-		/// KEEP_VERTICAL), so mj_autoengage engages KEEP_VERTICAL and switches
-		/// the flag ON (engaging in order to clear it would make no sense);
-		/// without the option the flag is just flipped, as MechJeb's action does.
-		/// </summary>
+		/// <summary>Kill H/S: flips the flag like MechJeb's action. Translatron OFF with
+		/// mj_autoengage: engage KEEP_VERTICAL and switch the flag ON (the flag only
+		/// acts in KEEP_VERTICAL).</summary>
 		public static void TransKillHToggle(Vessel vessel)
 		{
 			object thrust;

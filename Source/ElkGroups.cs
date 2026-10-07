@@ -1,13 +1,6 @@
-// Slot groups: "Global" (ELK.cfg: the master file with the global options
-// and the set-switching hotkeys), "Squad" (ELK_Squad.cfg: the stock SAS and
-// Brakes slots) and one per supported third-party mod. A group is one tab
-// in the toolbar window and one cfg file in PluginData, so presets for
-// different mods never step on each other and a preset never carries the
-// global options. Third-party groups carry an "installed" probe (is the
-// mod's DLL loaded?) that hides the tab and lets ElkConfig create the
-// group's cfg on first detection; they may also carry a conflict scanner
-// for the mod's own native hotkeys and the default values of their own
-// options (written into the generated template).
+// Slot groups: one tab in the window and one cfg file in PluginData each
+// (Global, Squad, one per supported mod), with optional installed probe,
+// conflict scanner and option defaults.
 
 using System;
 using System.Collections.Generic;

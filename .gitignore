@@ -7,8 +7,6 @@ notes/
 
 # Release packages
 ELK*.zip
-GameData/000_ClickThroughBlocker/
-GameData/001_ToolbarControl/
 
 # OS/editor cruft
 .DS_Store

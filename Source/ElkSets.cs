@@ -1,16 +1,6 @@
-// Key sets: a named "layer" a slot can belong to, so the same physical key
-// can drive the stock SAS in one set and SmartASS or Cruise Flight in
-// another, switched by one universal hotkey (SET_NEXT / SET_PREV) like
-// action-group sets. A slot with an empty set is always active. With no
-// set declared at all (the shipped default) every slot is always active
-// and nothing here has any effect.
-//
-// Two levels of "active set": the global default in ELK.cfg (active_set),
-// and, when sets_per_vessel is on, a per-vessel memory kept in
-// ElkVesselModule inside the save, so a plane can live in the AA set and a
-// rocket in the MechJeb set without touching anything. Switching in flight
-// writes the vessel's memory; switching from the Space Center window (no
-// vessel) writes the global default.
+// Key sets: named layers a slot can belong to, switched by SET_NEXT/SET_PREV.
+// Active set is global (ELK.cfg) or per vessel (ElkVesselModule). No sets
+// declared = every slot always active.
 
 using System;
 using System.Collections.Generic;
@@ -114,13 +104,9 @@ namespace ELK
 			ElkConfig.SetOption(ElkGroups.Global, OptDisengage, on.Count == names.Count ? "*" : string.Join(", ", on.ToArray()));
 		}
 
-		/// <summary>
-		/// Makes name the active set: the vessel's memory in flight (when
-		/// on), the global default otherwise. In flight, leaving a set also
-		/// runs Disengage() on it. This is the only path that does: scene
-		/// changes, vessel switches and focus changes never come through
-		/// here, so a mod that drops its own state on those does it alone.
-		/// </summary>
+		/// <summary>Makes name the active set: vessel memory in flight (when on), global
+		/// default otherwise. Only this path runs Disengage() on the set left;
+		/// scene and vessel changes never do.</summary>
 		public static void Select(Vessel vessel, string name, bool announce)
 		{
 			List<string> names = Names;
@@ -147,13 +133,9 @@ namespace ELK
 				Announce(name);
 		}
 
-		/// <summary>
-		/// sets_disengage: every slot of the set being left runs its `off`
-		/// action (ElkSlot.off), once per distinct action, so the set coming
-		/// in never fights an autopilot the old set engaged. Skipped for
-		/// slots whose mod is absent or whose tab has hotkeys off. Always-on
-		/// slots are not part of any set and are never touched.
-		/// </summary>
+		/// <summary>sets_disengage: each slot of the set being left runs its `off` once per
+		/// distinct action; skipped for absent mods and tabs with hotkeys off.
+		/// Always-on slots are never touched.</summary>
 		private static void Disengage(Vessel vessel, string set)
 		{
 			if (!DisengageOnExit(set))

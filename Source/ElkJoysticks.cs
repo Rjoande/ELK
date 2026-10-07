@@ -1,28 +1,6 @@
-// Joystick buttons bound by device NAME instead of by Unity's joystick
-// index. Windows hands out the joystick order anew at every launch (two
-// sticks swap Joystick1/Joystick2 between sessions, seen in Player.log's
-// "[Input Devices]" line), so a bind stored as Joystick2Button5 would
-// follow whatever device sits in slot 2 today. Stock KSP has the same
-// problem for its button KeyBindings and solves it only for axes
-// (InputDevices + AxisBinding_Single, which store the device name and
-// resolve it on load); this class does the same for ELK's buttons.
-//
-// Model: the K of a JoystickKButtonN in a cfg is an ELK-LOGICAL index,
-// a pointer to the DEVICES entry of ELK.cfg with that index, which holds
-// the device name as Input.GetJoystickNames() reports it. At capture time
-// the physical index is translated to the logical one (creating the entry
-// on first sight); at match time the logical one is translated back by
-// looking the name up in the current GetJoystickNames() array, where
-// position i is Joystick(i+1) (Unity docs; a disconnected device leaves
-// an empty string in place and the other positions do not shift). A
-// logical index with no DEVICES entry is used literally, which is also
-// what every bind saved before this existed does.
-//
-// Each entry also carries a short label for the window, where the full
-// device name ("VKBsim Gladiator EVO R FSM.GA") would never fit the bind
-// column: a bind is shown as "VKBsim.B10" and that form is also accepted
-// in a cfg; the file itself always keeps the canonical Joystick1Button10,
-// so renaming a label touches nothing but ELK.cfg's DEVICES node.
+// Joystick buttons bound by device NAME: the K of JoystickKButtonN in a cfg
+// is a logical index into ELK.cfg's DEVICES node, resolved against
+// Input.GetJoystickNames() at match time (Windows reorders devices per launch).
 
 using System;
 using System.Collections.Generic;
@@ -295,12 +273,9 @@ namespace ELK
 
 		// ---- translation -------------------------------------------------
 
-		/// <summary>
-		/// The KeyCode to poll for a bind's code: a JoystickKButtonN whose
-		/// K has a DEVICES entry becomes the button of wherever that device
-		/// is now, or None (never matches) while it is not connected.
-		/// Everything else is returned as is.
-		/// </summary>
+		/// <summary>KeyCode to poll for a bind: a JoystickKButtonN with a DEVICES entry maps
+		/// to that device's current button, or None while disconnected.
+		/// Other codes are returned as is.</summary>
 		public static KeyCode Physical(KeyCode logical)
 		{
 			if (!IsSpecificButton(logical))
@@ -319,14 +294,9 @@ namespace ELK
 			return Code(now, ButtonOf(logical));
 		}
 
-		/// <summary>
-		/// Capture-time counterpart: the code to STORE for a physical
-		/// JoystickKButtonN just pressed. The device's name is looked up
-		/// (or registered, keeping K as its logical index when that is free,
-		/// else the first free one) and its logical index substituted. A
-		/// device with no name (stock treats that as an anomaly too: "Device
-		/// #N has no name") stays literal, with a warning.
-		/// </summary>
+		/// <summary>Capture-time counterpart: the code to STORE for a physical button. The
+		/// device is looked up or registered; a nameless device stays literal with
+		/// a warning.</summary>
 		public static KeyCode Logical(KeyCode physical)
 		{
 			if (!IsSpecificButton(physical))

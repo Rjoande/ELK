@@ -1,30 +1,6 @@
-// Owns the cfg files in PluginData: one per slot group (ELK.cfg = global
-// master, ELK_Squad.cfg = stock slots, ELK_<Mod>.cfg per supported mod,
-// see ElkGroups), their loading, the in-memory slot->bind, slot->set and
-// slot->map maps, the generic option store, and writing a single value back to disk
-// (used by the toolbar's capture flow and option clicks). Static and
-// scene-independent on purpose: ElkAddon (Flight scene) and
-// ElkToolbarApp/ElkWindow (Space Center scene) share this one source of
-// truth without depending on which scene's MonoBehaviour.Awake() happened
-// to run first this session — PluginData's path is computed from the
-// assembly's own location, never from a KSPAddon lifecycle callback.
-//
-// Third-party cfg files are not shipped: ELK writes an empty template the
-// first time it loads with that mod installed, and never deletes one (the
-// mod may come back, and the player's bindings with it). A file present
-// while its mod is absent is still parsed, so nothing is lost.
-// ELK_Squad.cfg ships with the mod; if it is missing while ELK.cfg still
-// holds the stock slots (an install upgraded from 1.0.x, where everything
-// lived in ELK.cfg), ELK creates it by copying those keys over - ELK.cfg
-// keeps its old nodes, inert, until the player tidies them.
-//
-// Known trade-off: every write round-trips the file through ConfigNode's
-// own writer, which does not preserve the shipped file's "//" comments.
-// The first toolbar-driven change on a fresh install replaces the
-// annotated default cfg with an uncommented one — accepted (same
-// limitation applies to every ConfigNode-based KSP mod, stock's own
-// settings.cfg included); the toolbar window is the in-game source of
-// explanation at that point.
+// Static, scene-independent owner of the cfg files in PluginData (one per
+// group), the slot->bind/set/map maps and the option store. Third-party cfgs
+// are created empty on first detection and never deleted.
 
 using System;
 using System.Collections.Generic;
@@ -43,13 +19,8 @@ namespace ELK
 		private const string OptSasAutoEngage = "sas_autoengage";
 		private const string OptSasNavball = "sas_navball";
 
-		// ELK.dll sits in GameData/ELK/Plugins/, and PluginData is a SIBLING
-		// of Plugins/ (both directly under GameData/ELK/), not nested inside
-		// it - so the mod root is one level above the assembly's own
-		// directory. Getting this wrong silently produces a "config not
-		// found" path like ".../ELK/Plugins/PluginData/ELK.cfg" that never
-		// matches the actual shipped file - confirmed via KSP.log after a
-		// user report that no hotkey fired at all.
+		// PluginData is a SIBLING of Plugins/, so the mod root is one level above
+		// the assembly's directory.
 		private static readonly string pluginDataDir = Path.Combine(
 			Path.GetDirectoryName(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)),
 			"PluginData");
@@ -86,10 +57,7 @@ namespace ELK
 			return slotSets.TryGetValue(slotId, out set) ? set : "";
 		}
 
-		// Whether each slot also fires in map view, from the slot node's
-		// "map" value; a slot with no such value falls back to its own
-		// ElkSlot.mapDefault, so cfg files written before the flag existed
-		// need no migration.
+		// Per-slot "map" value; missing = ElkSlot.mapDefault (no migration).
 		private static readonly Dictionary<string, bool> slotMap = new Dictionary<string, bool>();
 
 		public static bool GetSlotMap(string slotId)
@@ -305,11 +273,8 @@ namespace ELK
 			SetSlotValue(slotId, "map", value ? "true" : "false");
 		}
 
-		/// <summary>
-		/// Copies binds from one slot to another along a two-column map
-		/// (reverse = right to left), overwriting the destination, never
-		/// touching the source or the slots' key sets. Returns a report.
-		/// </summary>
+		/// <summary>Copies binds along a two-column map (reverse = right to left),
+		/// overwriting the destination, never the source or key sets. Returns a report.</summary>
 		public static List<string> CopyBinds(string[,] map, bool reverse, string fromLabel, string toLabel)
 		{
 			List<string> lines = new List<string>();

@@ -1,7 +1,5 @@
-// Flight-scene runtime: fires each bound slot's action on a matching
-// keypress. All the actual logic (cfg I/O, bind matching, slot actions)
-// lives in ElkConfig/ElkBind/ElkSlots — this class is just the driver loop,
-// same shape as SBT's ToggleStockBrakeAddon.
+// Flight-scene driver loop: fires each bound slot's action on a matching
+// keypress. Logic lives in ElkConfig/ElkBind/ElkSlots.
 
 using System.Collections.Generic;
 using UnityEngine;
@@ -42,14 +40,9 @@ namespace ELK
 		// by NavBallToggle as the navball is shown or hidden there).
 		private const string MapViewLockId = "MapView";
 
-		// True while a text field has keyboard focus (renaming a vessel or
-		// a maneuver...) or anything else locks the keyboard - same guard
-		// SBT already uses. InputLockManager.IsLocked(mask) is true as soon
-		// as ONE bit of the mask is locked, and map view always holds a lock
-		// that overlaps KEYBOARDINPUT (every ship control with the navball
-		// hidden, action groups and staging with it shown), so in map view
-		// that one lock is left out and every other lock still counts.
-		// Verified against KSP 1.12.5 Assembly-CSharp.dll, decompiled.
+		// True while a text field has focus or anything else locks the keyboard.
+		// In map view the always-present MapView lock is left out of the test (it
+		// overlaps KEYBOARDINPUT); other locks count. Verified on KSP 1.12.5.
 		private static bool KeyboardLocked(bool inMap)
 		{
 			if (!InputLockManager.IsLocked(ControlTypes.KEYBOARDINPUT))
@@ -105,11 +98,8 @@ namespace ELK
 						continue;
 					}
 
-					// Some controllers deliver one physical press as two
-					// key-down events a frame or two apart, which would flip
-					// a toggle twice. A second fire of the same slot within
-					// RepeatGuardSeconds is dropped; both cases are logged so
-					// a duplicate is visible in Player.log.
+					// Some controllers send one press as two key-downs a frame apart: a second
+					// fire of the same slot within RepeatGuardSeconds is dropped (and logged).
 					float now = Time.unscaledTime;
 					float last;
 					if (lastFire.TryGetValue(slot.id, out last) && now - last < RepeatGuardSeconds)

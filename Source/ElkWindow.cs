@@ -1,14 +1,5 @@
-// Minimal IMGUI window ("UI minimale" — deliberately much smaller than
-// KRILL's 3-column layout): a row of tabs (one per slot group whose mod is
-// installed), then one row per slot of the active tab (label, key set
-// button while sets are in use, map view toggle, current bind, Capture,
-// Clear), any live conflict warning shown inline underneath. ELK only ever binds whole
-// vessel-level actions, so there's no per-part target to pick the way
-// KRILL needs.
-//
-// All user-facing strings are plain ASCII on purpose: Unity's default
-// IMGUI skin font isn't guaranteed to carry glyphs like an em dash or a
-// warning triangle, and a missing glyph renders as a visible tofu box.
+// Minimal IMGUI window: one tab per installed group, one row per slot.
+// Strings are plain ASCII (the default IMGUI font lacks many glyphs).
 
 using System;
 using System.Collections.Generic;
@@ -22,15 +13,8 @@ namespace ELK
 
 		private static ElkWindow instance;
 
-		// Position only: the size here is just the first frame's guess.
-		// GUILayout.Window resizes a window to fit its contents as long as
-		// nothing inside it stretches, and now that the rows are laid out
-		// directly (no ScrollView, which stretched to fill whatever height
-		// the Rect had and scrolled the rest away) that is the case - so the
-		// window grows and shrinks by itself with the empty-state line, the
-		// capture line and any conflict warnings, and can never show a
-		// scrollbar or leave dead space under the last row. Tabs keep it
-		// that way: only one group's rows exist at a time.
+		// Position only: GUILayout.Window auto-sizes to the contents (no
+		// ScrollView), so the window grows and shrinks by itself.
 		private Rect windowRect = new Rect(200, 100, 660, 400);
 		private string activeGroupId = ElkGroups.Global;
 		private string capturingSlotId;
@@ -77,10 +61,8 @@ namespace ELK
 
 		private void DrawWindow(int id)
 		{
-			// Width pinned to what a row actually needs (170 + 72 + 46 + 170
-			// + 85 + 65 plus IMGUI's own spacing), so the window keeps one
-			// width across every state instead of twitching wider whenever
-			// a longer line of text appears above the rows.
+			// Width pinned to what a row needs (170+72+46+170+85+65 plus IMGUI
+			// spacing), so it never changes with the text above the rows.
 			GUILayout.BeginVertical(GUILayout.Width(635));
 
 			DrawTabs();
@@ -144,12 +126,8 @@ namespace ELK
 			GUI.DragWindow();
 		}
 
-		/// <summary>
-		/// One toggle-styled button per installed group. Groups whose mod
-		/// is absent are listed in one line instead of getting a tab.
-		/// Switching is blocked during a capture so the capturing row stays
-		/// on screen until it resolves.
-		/// </summary>
+		/// <summary>One toggle button per installed group; absent mods are listed in one
+		/// line. Blocked during a capture.</summary>
 		private void DrawTabs()
 		{
 			List<ElkGroup> shown = new List<ElkGroup>();
@@ -183,13 +161,9 @@ namespace ELK
 			GUILayout.Space(4);
 		}
 
-		/// <summary>
-		/// Per-tab master switch ("hotkeys" in that tab's cfg): off
-		/// hibernates every slot of the tab, and for a third-party tab every
-		/// interaction with that mod, while the bindings stay on disk and
-		/// editable. Committed on the click that changes it, like the other
-		/// options.
-		/// </summary>
+		/// <summary>Per-tab master switch ("hotkeys" in the tab's cfg): off hibernates the
+		/// tab's slots and any interaction with that mod; bindings stay on disk.
+		/// Committed on click.</summary>
 		private void DrawGroupHotkeysToggle()
 		{
 			bool enabled = ElkConfig.GroupHotkeysEnabled(activeGroupId);
@@ -207,10 +181,8 @@ namespace ELK
 			GUILayout.Space(6);
 		}
 
-		// ELK tab: the key sets. The list is committed as typed (any text
-		// is a valid list; blanks and duplicates are ignored when read), the
-		// default set is stepped with the same code the SET_NEXT/SET_PREV
-		// hotkeys run, on no vessel, so it lands in ELK.cfg.
+		// ELK tab: key sets. The list is committed as typed (blanks and
+		// duplicates ignored on read); the default set steps like SET_NEXT/PREV.
 		private string setsText;
 
 		private void DrawSetsOptions()
@@ -283,10 +255,8 @@ namespace ELK
 			GUILayout.Space(6);
 		}
 
-		// ELK tab: the joysticks known by name (DEVICES node of ELK.cfg).
-		// One row per device: its short label (editable, committed as soon
-		// as the text is a valid unused label), the full name Unity reports,
-		// where that device sits right now, and Forget.
+		// ELK tab: joysticks known by name (DEVICES node): editable label,
+		// full name, current position, Forget.
 		private readonly Dictionary<int, string> deviceLabelText = new Dictionary<int, string>();
 
 		private void DrawDevices()
@@ -403,12 +373,8 @@ namespace ELK
 			return false;
 		}
 
-		/// <summary>
-		/// The one option of the Squad tab: whether an SAS mode hotkey may
-		/// switch SAS on by itself. Committed to the cfg on the click that
-		/// changes it, same as a capture - there is no Apply button and
-		/// nothing to undo, so writing on change keeps the window stateless.
-		/// </summary>
+		/// <summary>The Squad tab's option: whether an SAS mode hotkey may switch SAS on.
+		/// Committed on click, like a capture.</summary>
 		private void DrawSasAutoEngageToggle()
 		{
 			GUI.enabled = !ElkCapture.IsCapturing;
@@ -433,12 +399,9 @@ namespace ELK
 			GUILayout.Space(6);
 		}
 
-		// AtmosphereAutopilot tab: two checkboxes, three step fields and the
-		// Import / Export / Restore buttons for AA's own keys, with the last
-		// action's report underneath (kept until the next action or a tab
-		// switch). Step fields are committed as soon as the text parses to
-		// a different value; a partial or invalid entry is simply not
-		// committed yet, so the cfg never holds garbage.
+		// AtmosphereAutopilot tab: checkboxes, step fields (committed once the
+		// text parses to a new value) and Import / Export / Restore with the
+		// last report underneath.
 		private readonly Dictionary<string, string> aaStepText = new Dictionary<string, string>();
 		private readonly List<string> aaReport = new List<string>();
 		private string aaReportGroupId;

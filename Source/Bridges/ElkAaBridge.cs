@@ -1,54 +1,6 @@
-// AtmosphereAutopilot (AA) reached purely by reflection: ELK never
-// references AtmosphereAutopilot.dll (GPL-3) and copies none of its code;
-// a missing or reshaped AA only turns the affected slots into no-ops.
-// Every member below is verified against the AA 1.6.1 source; the ones
-// marked "fork" exist as hotkeys only in Rjoande's GA fork, but the state
-// they act on is upstream, so ELK offers those actions on official AA too.
-//
-//   AtmosphereAutopilot.AtmosphereAutopilot
-//       public static Instance; public getVesselModules(Vessel) -> Dictionary<Type, AutopilotModule>;
-//       public mainMenuGUIUpdate() - AA calls it after every hotkey-driven state change
-//   AtmosphereAutopilot.AutopilotModule : GUIWindow
-//       public bool Active { get; set; }  (setter = Activate()/Deactivate())
-//   AtmosphereAutopilot.GUIWindow
-//       public bool ToggleGUI(); public virtual void ShowGUI(); public bool IsShown()
-//   AtmosphereAutopilot.TopModuleManager
-//       public StateController activateAutopilot(Type)  (switches master on too)
-//   AtmosphereAutopilot.CruiseController
-//       internal bool LevelFlightMode / WaypointMode, private bool CourseHoldMode (setters
-//       with side effects, CourseHold refuses beyond 80 deg latitude);
-//       public bool vertical_control; public HeightMode height_mode (nested enum
-//       Altitude, VerticalSpeed, FlightPathAngle); private HeightMode
-//       prev_height_change_mode_by_hotkey; public DelayedFieldFloat desired_course,
-//       desired_altitude (ASL, compared with vessel.altitude), desired_vertsetpoint;
-//       public static bool use_keys
-//   AtmosphereAutopilot.DelayedFieldFloat: public float Value { get; set; }
-//   AtmosphereAutopilot.StandardFlyByWire: public bool moderation_switch, RocketMode,
-//       Coord_turn (properties whose setters post the status message)
-//   AtmosphereAutopilot.ProgradeThrustController: public bool spd_control_enabled
-//   AtmosphereAutopilot.FlightModel (partial, EngineBalancing.cs): public bool balance_engines
-//   AtmosphereAutopilot.MessageManager: public static post_status_message(string)
-//
-// AA itself only runs a module's own hotkeys while that module is Active
-// (AtmosphereAutopilot.Update); ELK goes one step further with
-// aa_autoengage: a Cruise/FBW key pressed while that controller is off
-// switches master and controller on first (activateAutopilot), the same
-// spirit as sas_autoengage for the stock SAS keys.
-//
-// A vessel's controller instances only exist once its master has been
-// switched on at least once (TopModuleManager.OnActivate -> create_context,
-// decompiled 1.6.1); until then getVesselModules holds the manager alone.
-// activateAutopilot(Type) sets Active first, so it creates them itself.
-//
-// AtmosphereApproach (AAPR, Rjoande's APR add-on, GPL-3): an AA
-// StateController living in AtmosphereApproach.dll, reached the same way
-// and only when that DLL is loaded. Members verified against AAPR 0.1:
-//
-//   AtmosphereApproach.ApproachController : StateController
-//       public bool Armed { get; set; } - the window's APR toggle and the
-//       native hotkey both set it; the setter refuses to arm without a
-//       NavInstruments runway tuned on the current body and posts its own
-//       status messages.
+// AtmosphereAutopilot (and the AtmosphereApproach add-on) by reflection only;
+// a missing or reshaped member turns its slots into no-ops. Controllers exist
+// only after the master was first switched on: activateAutopilot creates them.
 
 using System;
 using System.Collections;
@@ -422,11 +374,8 @@ namespace ELK
 			return true;
 		}
 
-		/// <summary>
-		/// The controller a slot needs, activating it first when
-		/// aa_autoengage allows; null = no-op (AA absent, vessel unknown,
-		/// controller off with auto-engage disabled).
-		/// </summary>
+		/// <summary>The controller a slot needs, activating it first when aa_autoengage
+		/// allows; null = no-op (AA absent, vessel unknown, controller off).</summary>
 		private static object Engaged(Vessel vessel, Type controllerType)
 		{
 			bool switchedOn;
@@ -451,11 +400,8 @@ namespace ELK
 			return (controller != null) ? controller : Module(vessel, controllerType);
 		}
 
-		/// <summary>
-		/// A module instance whether active or not, for slots that only set a
-		/// value or a flag and never switch anything on. Null, logged once, on
-		/// a vessel whose master has never been on (AA has not built it yet).
-		/// </summary>
+		/// <summary>A module instance, active or not, for slots that only set a value or
+		/// flag. Null (logged once) while the master has never been on.</summary>
 		private static object Existing(Vessel vessel, Type type, string what)
 		{
 			object module = Module(vessel, type);
@@ -469,12 +415,8 @@ namespace ELK
 
 		// ---- slot actions: AtmosphereApproach ----
 
-		/// <summary>
-		/// APR arm/disarm, what AAPR's own hotkey does: select the Approach
-		/// controller first if another autopilot (or none) is flying, then
-		/// flip Armed. Deliberately ignores aa_autoengage, like the FD and
-		/// select keys; the Armed setter applies AAPR's own runway gate.
-		/// </summary>
+		/// <summary>APR arm/disarm like AAPR's hotkey: select the Approach controller first,
+		/// then flip Armed. Ignores aa_autoengage; AAPR gates the runway itself.</summary>
 		public static void ApproachArmToggle(Vessel vessel)
 		{
 			Resolve();
@@ -565,11 +507,8 @@ namespace ELK
 			Activate(vessel, cruiseType);
 		}
 
-		/// <summary>
-		/// FD key: with the master on, Cruise Flight <-> Standard FBW; with the
-		/// master off (or never on), always Standard FBW, AA's own default
-		/// controller on a fresh vessel.
-		/// </summary>
+		/// <summary>FD key: master on = Cruise <-> Standard FBW; master off = Standard FBW
+		/// (AA's default controller on a fresh vessel).</summary>
 		public static void ToggleFd(Vessel vessel)
 		{
 			object top = Module(vessel, topType);
@@ -675,12 +614,9 @@ namespace ELK
 			}
 		}
 
-		/// <summary>
-		/// AA's upstream "altitude / vertical speed" key: Altitude goes back
-		/// to the last changing mode used (V/S or FPA, remembered by AA in
-		/// prev_height_change_mode_by_hotkey), V/S or FPA go to Altitude.
-		/// Without that private field the fallback is plain Altitude <-> V/S.
-		/// </summary>
+		/// <summary>AA's altitude/vertical-speed key: Altitude -> last changing mode (V/S or
+		/// FPA, prev_height_change_mode_by_hotkey), V/S or FPA -> Altitude.
+		/// Without that private field: Altitude <-> V/S.</summary>
 		public static void CruiseSetpointTypeToggle(Vessel vessel)
 		{
 			object cruise = Engaged(vessel, cruiseType);
@@ -793,12 +729,9 @@ namespace ELK
 		public static void CruiseHdgUp(Vessel vessel) { CruiseBug(vessel, desiredCourse, HdgStep, true); }
 		public static void CruiseHdgDown(Vessel vessel) { CruiseBug(vessel, desiredCourse, -HdgStep, true); }
 
-		/// <summary>
-		/// ALT bug = current altitude ASL (what AA's altitude hold compares
-		/// against), then altitude hold engaged (never disengaged: unlike
-		/// the ALT toggle, "sync" always means "hold this"). The plain bug
-		/// encoders only move the bug.
-		/// </summary>
+		/// <summary>ALT bug = current altitude ASL, then altitude hold engaged (never
+		/// disengaged: "sync" always means "hold this"). Plain encoders only move
+		/// the bug.</summary>
 		public static void CruiseAltSync(Vessel vessel)
 		{
 			object cruise = Engaged(vessel, cruiseType);

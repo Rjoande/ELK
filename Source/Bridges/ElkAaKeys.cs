@@ -1,30 +1,6 @@
-// AtmosphereAutopilot's OWN hotkeys, reached by reflection: enumeration,
-// reading, writing, and the Import / Export / Restore actions of the
-// AtmosphereAutopilot tab. Verified against the AA 1.6.1 source:
-//
-// - Every AA hotkey is a static KeyCode field of a module class, marked
-//   [AutoHotkeyAttr("display name")] (public attribute type, public
-//   "hotkey_name" field) and [GlobalSerializable("key")] (subclass of
-//   AutoSerializableAttr, public "data_name" field). AA's own "Hotkeys
-//   manager" window enumerates them the same way (Static | Public |
-//   NonPublic), so whatever an AA build declares - 9 keys upstream, more in
-//   a fork - is found without a hard-coded list.
-// - They persist in GameData/AtmosphereAutopilot/Global_settings.txt, one
-//   node per module (node = module name with spaces replaced by '_'). AA
-//   reads that file on every vessel load (overwriting the static fields)
-//   and rewrites it only when leaving flight. Hence the file, not the
-//   static field, is the source of truth (before the first flight of a
-//   session the fields still hold the compiled defaults), and every write
-//   from here goes to BOTH the file and the field.
-// - KeyCode values are stored as Enum.Parse-able literals ("P", "None").
-//
-// - AtmosphereApproach (AAPR) declares its APR key the same way, with AA's
-//   own attributes, in its own DLL: the scan covers that assembly too when
-//   it is loaded, so the key shows up in the scanner and in Import /
-//   Export / Restore like any AA key (node "Approach_controller").
-//
-// Nothing here runs unless the player clicks a button on the AA tab or
-// captures a key (conflict scan): ELK never touches AA's file on its own.
+// AA's own hotkeys by reflection: enumerate, read, write, Import/Export/Restore.
+// Source of truth is Global_settings.txt (fields hold compiled defaults until
+// the first flight), so every write goes to both file and static field.
 
 using System;
 using System.Collections.Generic;
@@ -335,13 +311,8 @@ namespace ELK
 			}
 		}
 
-		/// <summary>
-		/// Snapshot of every AA key as it is now. Written once; a value already
-		/// in the backup is never overwritten, but a key the backup does not
-		/// know yet (a hotkey added by an AA update or by AtmosphereApproach
-		/// installed later) is appended with its current value. True if a
-		/// backup exists afterwards.
-		/// </summary>
+		/// <summary>Snapshot of every AA key, written once; existing values are never
+		/// overwritten, keys the backup lacks are appended. True if a backup exists.</summary>
 		public static bool EnsureBackup()
 		{
 			ConfigNode root = BackupExists ? ConfigNode.Load(BackupPath) : null;

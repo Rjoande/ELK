@@ -1,15 +1,6 @@
-// Small reflection helpers shared by the per-mod bridges. Every lookup
-// returns null (with one warning line) instead of throwing, so a bridge
-// can resolve its members one by one and degrade per member when a mod
-// release renames something.
-//
-// AssemblyLoader.loadedAssemblies confirmed against KSP 1.12.5
-// Assembly-CSharp.dll, decompiled: LoadedAssembly.dllName is the DLL file
-// name without extension and never changes, while LoadedAssembly.name
-// starts equal to it but is OVERWRITTEN with the [KSPAssembly] attribute's
-// name when the DLL declares one (NavUtilitiesUpdated.dll becomes
-// "NavInstrumentsContinued"). Matching on name alone silently missed
-// NavUtilities in-game, so dllName is the key and name only a fallback.
+// Reflection helpers for the bridges: lookups return null with one warning.
+// Assemblies match on dllName (stable); LoadedAssembly.name is overwritten by
+// [KSPAssembly] and is only a fallback.
 
 using System;
 using System.Reflection;

@@ -1,20 +1,6 @@
-// Ported from KRILL's KrillBind.cs (github.com/Rjoande/KRILL, same author,
-// MIT) with one deliberate change: serialization. KRILL stores a bind as
-// several ConfigNode values (primary = X, repeated modifier = Y); ELK
-// stores it as a single human-editable string in the "key" field
-// ("LeftAlt+Y", "LeftControl+LeftShift+G" — modifiers then primary,
-// '+'-joined literal KeyCode names) so the no-toolbar, hand-edited cfg path
-// stays simple, and a captured bind's on-screen Describe() text is directly
-// usable as the cfg value too. Joystick buttons are the one twist: a
-// JoystickKButtonN is stored with K as an ELK-logical index resolved
-// through ELK.cfg's DEVICES node (see ElkJoysticks), is displayed as
-// "<label>.B<n>" when that device is known, and that short form is
-// accepted by Parse as well; ToKeySpec() always writes the canonical
-// KeyCode name.
-//
-// Downgraded to C# 5 syntax throughout (no expression-bodied members, no
-// null-conditional operator, no Enum.TryParse<T>): this project builds with
-// the legacy .NET Framework csc against KSP's own assemblies, same as SBT.
+// Key bind (primary + modifiers), ported from KRILL's KrillBind (MIT).
+// Stored as one '+'-joined string ("LeftAlt+Y"); joystick buttons go through
+// ElkJoysticks. C# 5 syntax only (legacy csc).
 
 using System;
 using System.Collections.Generic;
@@ -23,10 +9,7 @@ using UnityEngine;
 
 namespace ELK
 {
-	/// <summary>
-	/// One player keybind: a primary KeyCode plus zero or more modifier
-	/// KeyCodes that must be held when the primary is freshly pressed.
-	/// </summary>
+	/// <summary>One keybind: a primary KeyCode plus modifiers held when it is pressed.</summary>
 	public class ElkBind
 	{
 		public KeyCode primary = KeyCode.None;
@@ -60,14 +43,9 @@ namespace ELK
 			return other != null && !IsNone && primary == other.primary;
 		}
 
-		/// <summary>
-		/// True if a single key press can fire both binds: same primary and
-		/// one bind's modifier set contained in the other's. Matches()
-		/// ignores extra held keys, so "Keypad1" also fires while
-		/// "RightShift+Keypad1" is pressed (nested: conflict), whereas
-		/// "RightControl+Keypad1" and "RightShift+Keypad1" need different
-		/// held keys and never fire together (disjoint: no conflict).
-		/// </summary>
+		/// <summary>True if one press can fire both binds: same primary and nested modifier
+		/// sets (Matches() ignores extra held keys); disjoint modifiers don't
+		/// conflict.</summary>
 		public bool ConflictsWith(ElkBind other)
 		{
 			if (!SharesPrimaryWith(other))
@@ -122,12 +100,8 @@ namespace ELK
 			}
 		}
 
-		/// <summary>
-		/// Parses a "key" cfg value: '+'-separated tokens, the last is the
-		/// primary, any earlier ones are modifiers, all literal KeyCode
-		/// names. Tolerant: returns an IsNone bind (with a logged warning)
-		/// instead of throwing on bad input.
-		/// </summary>
+		/// <summary>Parses a "key" cfg value: '+'-separated literal KeyCode names, last =
+		/// primary. Tolerant: bad input gives an IsNone bind and a warning.</summary>
 		public static ElkBind Parse(string spec)
 		{
 			ElkBind bind = new ElkBind();

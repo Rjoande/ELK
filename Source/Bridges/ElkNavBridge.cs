@@ -1,27 +1,6 @@
-// NavUtilities (NavInstruments Continued) reached purely by reflection:
-// ELK never references NavUtilitiesUpdated.dll, so a missing or reshaped
-// NavUtilities only makes the slot a no-op. Member names verified against
-// NavUtilitiesUpdated.dll 0.8.1.1, decompiled:
-//
-//   NavInstruments.NavUtilLib.GlobalVariables.Settings.appReference
-//       public static NavUtilLibApp - the Flight addon instance, set in Awake
-//   NavInstruments.NavUtilLib.GlobalVariables.Settings.hsiState
-//       public static bool - true while the HSI window is shown
-//   NavInstruments.NavUtilLib.NavUtilLibApp.displayHSI()
-//       public instance - what the toolbar button's left click calls
-//   NavInstruments.NavUtilLib.NavUtilLibApp.toolbarControl
-//       private static ToolbarControl_NS.ToolbarControl
-//
-// Why the icon needs a separate sync: NavUtilities registers its toolbar
-// button with null onTrue/onFalse and a left-click callback. The stock
-// ApplicationLauncherButton.SetTrue/SetFalse only ever raise onTrue/onFalse
-// (UIRadioButton.SetState, decompiled), never the click callback, so there
-// is no way to "click" the button from code; calling displayHSI() directly
-// toggles the window but leaves the icon's toggled look behind. Hence:
-// displayHSI(), then SetTrue(false)/SetFalse(false) on the ToolbarControl
-// to match hsiState without firing any callback. The ToolbarControl type is
-// reached through the field's own FieldType, so this bridge compiles and
-// runs without ToolbarControl.dll too.
+// NavUtilities (NavInstruments Continued) by reflection only. displayHSI()
+// toggles the window, then the ToolbarControl icon is synced with
+// SetTrue/SetFalse(false) since the click callback can't be raised from code.
 
 using System;
 using System.Reflection;
