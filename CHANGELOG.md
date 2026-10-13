@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.1
+
+### Fixed
+- `AA_APR_TOGGLE` follows the updated AtmosphereApproach: it only arms and disarms. Leaving a key set disarms an armed APR.
+
 ## v1.1.0
 
 ### Added

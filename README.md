@@ -58,7 +58,7 @@ Every key ships **empty**. This is deliberate: ELK never picks a default for you
 | `AA_CF_ALT_SYNC`, `AA_CF_HDG_SYNC` | Altitude bug = current altitude and hold engaged; heading bug = current heading and heading hold selected. |
 | `AA_FBW_MODERATION`, `AA_FBW_ROCKET`, `AA_FBW_COORD_TURN` | Standard FBW toggles. |
 | `AA_SPEED_CONTROL`, `AA_THRUST_BALANCING` | Speed control / thrust balancing flags (effective while a controller using them is active, AA's own rule). |
-| `AA_APR_TOGGLE` | **AtmosphereApproach** only: APR arm/disarm, selecting the Approach controller first, same as AAPR's own hotkey. The row appears only with AAPR installed. |
+| `AA_APR_TOGGLE` | **AtmosphereApproach** only: APR arm/disarm, same as AAPR's own hotkey: it only flips the arm state, without selecting the controller or touching the master switch. The row appears only with AAPR installed. |
 
 With `aa_autoengage` (default on) a Cruise mode, hold, sync or FBW toggle key pressed while that controller is off switches AA on with it first, so one press does what its name says; off, those keys only act while their controller is already flying, like AA's own hotkeys. `aa_autoshow` (default off) opens the AA window whenever a key switches something on.
 

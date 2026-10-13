@@ -415,26 +415,44 @@ namespace ELK
 
 		// ---- slot actions: AtmosphereApproach ----
 
-		/// <summary>APR arm/disarm like AAPR's hotkey: select the Approach controller first,
-		/// then flip Armed. Ignores aa_autoengage; AAPR gates the runway itself.</summary>
+		/// <summary>APR arm/disarm like AAPR's own hotkey: flips Armed on the vessel's existing
+		/// Approach controller and nothing else (no selection, no master switch, so whatever is
+		/// flying keeps flying until localizer capture). Ignores aa_autoengage; AAPR gates the
+		/// runway itself. No-op while the controller does not exist yet (master never switched
+		/// on for this vessel), like AAPR's hotkey.</summary>
 		public static void ApproachArmToggle(Vessel vessel)
 		{
 			Resolve();
 			if (!ready || aprType == null || aprArmed == null)
 				return;
-			object apr = Module(vessel, aprType);
-			if (apr == null || !IsActive(apr))
-			{
-				if (!Activate(vessel, aprType))
-					return;
-				apr = Module(vessel, aprType);
-				if (apr == null)
-					return;
-			}
+			object apr = Existing(vessel, aprType, "Approach controller");
+			if (apr == null)
+				return;
 			try
 			{
 				bool armed = (bool)aprArmed.GetValue(apr, null);
 				aprArmed.SetValue(apr, !armed, null);
+			}
+			catch (Exception e)
+			{
+				WarnInvoke("Armed", e);
+			}
+		}
+
+		/// <summary>sets_disengage for APR: disarm if armed. MasterOff would not do, since an armed
+		/// APR survives the master switch and switches it back on at capture.</summary>
+		public static void ApproachDisarm(Vessel vessel)
+		{
+			Resolve();
+			if (!ready || aprType == null || aprArmed == null)
+				return;
+			object apr = Module(vessel, aprType);
+			if (apr == null)
+				return;
+			try
+			{
+				if ((bool)aprArmed.GetValue(apr, null))
+					aprArmed.SetValue(apr, false, null);
 			}
 			catch (Exception e)
 			{
