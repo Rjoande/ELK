@@ -2,7 +2,7 @@
 
 ![](assets/Elk2.jpg)
 
-A small KSP plugin that assigns configurable hotkeys to functions that don't have any: toggling stock *Brakes*, jumping to a specific SAS mode, and - when the mod is installed - the autopilot modes, holds and windows of **AtmosphereAutopilot**, **AtmosphereApproach**, **MechJeb2** and **NavUtilities**. Keys can be grouped into **key sets** that rotate with a single press, so the same keypad drives the stock SAS on a rocket and Cruise Flight on a plane. An optional in-game toolbar (Space Center only) lets you assign keys by pressing them, instead of hand-editing a config file.
+A small KSP plugin that assigns configurable hotkeys to functions that don't have any: toggling stock *Brakes*, jumping to a specific SAS mode, and - when the mod is installed - the autopilot modes, holds and windows of **AtmosphereAutopilot**, **Approach Autopilot** (formerly AtmosphereApproach), **MechJeb2** and **NavUtilities**. Keys can be grouped into **key sets** that rotate with a single press, so the same keypad drives the stock SAS on a rocket and Cruise Flight on a plane. An optional in-game toolbar (Space Center only) lets you assign keys by pressing them, instead of hand-editing a config file.
 
 ## The problem
 
@@ -58,7 +58,7 @@ Every key ships **empty**. This is deliberate: ELK never picks a default for you
 | `AA_CF_ALT_SYNC`, `AA_CF_HDG_SYNC` | Altitude bug = current altitude and hold engaged; heading bug = current heading and heading hold selected. |
 | `AA_FBW_MODERATION`, `AA_FBW_ROCKET`, `AA_FBW_COORD_TURN` | Standard FBW toggles. |
 | `AA_SPEED_CONTROL`, `AA_THRUST_BALANCING` | Speed control / thrust balancing flags (effective while a controller using them is active, AA's own rule). |
-| `AA_APR_TOGGLE` | **AtmosphereApproach** only: APR arm/disarm, same as AAPR's own hotkey: it only flips the arm state, without selecting the controller or touching the master switch. The row appears only with AAPR installed. |
+| `AA_APR_TOGGLE` | **Approach Autopilot** (or AtmosphereApproach, its former name) only: APR arm/disarm, same as its own hotkey: it only flips the arm state, without selecting the controller or touching the master switch. The row appears only with either installed; with both, the key goes to AtmosphereApproach, since Approach Autopilot disables itself until the old folder is deleted. |
 
 With `aa_autoengage` (default on) a Cruise mode, hold, sync or FBW toggle key pressed while that controller is off switches AA on with it first, so one press does what its name says; off, those keys only act while their controller is already flying, like AA's own hotkeys. `aa_autoshow` (default off) opens the AA window whenever a key switches something on.
 
@@ -173,7 +173,7 @@ A "preset" is one or more per-tab cfg files with the keys already filled in; `EL
 
 ## Optional integrations
 
-Nothing in this section is required or bundled. ELK looks for each mod's DLL at runtime and reaches it by reflection, so a missing mod just hides its tab; a future version of a mod that renames something turns the affected keys into no-ops with a warning in the log, never into an error. Verified against AtmosphereAutopilot 1.6.1 (official and Rjoande's fork), AtmosphereApproach 0.1, MechJeb2 2.15.3 and NavInstruments Continued 0.8.1.1 on KSP 1.12.5.
+Nothing in this section is required or bundled. ELK looks for each mod's DLL at runtime and reaches it by reflection, so a missing mod just hides its tab; a future version of a mod that renames something turns the affected keys into no-ops with a warning in the log, never into an error. Verified against AtmosphereAutopilot 1.6.1 (official and Rjoande's fork), AtmosphereApproach 1.0.0, Approach Autopilot 1.0.1, MechJeb2 2.15.3 and NavInstruments Continued 0.8.1.1 on KSP 1.12.5.
 
 Thanks to Boris-Barboris (AtmosphereAutopilot), the MechJeb team, kujuman and linuxgurugamer (NavUtilities / NavInstruments Continued), and linuxgurugamer again for ToolbarControl and ClickThroughBlocker.
 

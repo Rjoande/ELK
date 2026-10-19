@@ -1,4 +1,4 @@
-// AtmosphereAutopilot (and the AtmosphereApproach add-on) by reflection only;
+// AtmosphereAutopilot (and its approach add-on, AtmosphereApproach or ApproachAutopilot) by reflection only;
 // a missing or reshaped member turns its slots into no-ops. Controllers exist
 // only after the master was first switched on: activateAutopilot creates them.
 
@@ -64,12 +64,16 @@ namespace ELK
 		private static FieldInfo fmBalanceEngines;
 		private static MethodInfo postStatusMessage;
 
-		private const string AprDllName = "AtmosphereApproach";
-		private const string AprControllerTypeName = "AtmosphereApproach.ApproachController";
+		// The add-on's DLL and namespace, old name first: same code under both names. With both
+		// installed ApproachAutopilot disables itself (takes its controller out of AA's lists and
+		// asks to delete the old folder), so the old one is the one that flies and gets the input.
+		private static readonly string[] AprDllNames = { "AtmosphereApproach", "ApproachAutopilot" };
+		private const string AprControllerTypeSuffix = ".ApproachController";
 
 		private static bool aprChecked;
 		private static bool aprInstalled;
 		private static Assembly aprAssembly;
+		private static string aprDllName;
 		private static Type aprType;
 		private static PropertyInfo aprArmed;            // ApproachController.Armed
 
@@ -98,7 +102,7 @@ namespace ELK
 			return installed;
 		}
 
-		/// <summary>AtmosphereApproach's assembly when loaded (it cannot load without AA), else null. ElkAaKeys scans it for AAPR's native hotkey.</summary>
+		/// <summary>The approach add-on's assembly when loaded (it cannot load without AA), else null. ElkAaKeys scans it for its native hotkey.</summary>
 		public static Assembly ApproachAssembly
 		{
 			get
@@ -108,13 +112,28 @@ namespace ELK
 			}
 		}
 
-		/// <summary>True if AtmosphereApproach.dll is loaded: shows the APR row in the AA tab and gates its slot.</summary>
+		/// <summary>Name of the approach add-on's DLL in use (AtmosphereApproach or ApproachAutopilot), else null.</summary>
+		public static string ApproachName
+		{
+			get
+			{
+				IsApproachInstalled();
+				return aprDllName;
+			}
+		}
+
+		/// <summary>True if AtmosphereApproach.dll or ApproachAutopilot.dll is loaded: shows the APR row in the AA tab and gates its slot.</summary>
 		public static bool IsApproachInstalled()
 		{
 			if (!aprChecked)
 			{
 				aprChecked = true;
-				aprAssembly = ElkReflection.FindAssembly(AprDllName);
+				for (int i = 0; i < AprDllNames.Length && aprAssembly == null; i++)
+				{
+					aprAssembly = ElkReflection.FindAssembly(AprDllNames[i]);
+					if (aprAssembly != null)
+						aprDllName = AprDllNames[i];
+				}
 				aprInstalled = aprAssembly != null;
 			}
 			return aprInstalled;
@@ -224,10 +243,10 @@ namespace ELK
 
 			if (IsApproachInstalled())
 			{
-				aprType = ElkReflection.FindType(aprAssembly, AprControllerTypeName, AprDllName);
-				aprArmed = ElkReflection.FindProperty(aprType, "Armed", pubInst, AprDllName);
+				aprType = ElkReflection.FindType(aprAssembly, aprDllName + AprControllerTypeSuffix, aprDllName);
+				aprArmed = ElkReflection.FindProperty(aprType, "Armed", pubInst, aprDllName);
 				int aprFound = (aprType != null ? 1 : 0) + (aprArmed != null ? 1 : 0);
-				Debug.Log("[ELK] " + AprDllName + " bridge: " + aprFound + "/2 members resolved, APR hotkey " + (aprArmed != null ? "active" : "disabled"));
+				Debug.Log("[ELK] " + aprDllName + " bridge: " + aprFound + "/2 members resolved, APR hotkey " + (aprArmed != null ? "active" : "disabled"));
 			}
 		}
 
@@ -413,7 +432,7 @@ namespace ELK
 			return module;
 		}
 
-		// ---- slot actions: AtmosphereApproach ----
+		// ---- slot actions: AtmosphereApproach / ApproachAutopilot ----
 
 		/// <summary>APR arm/disarm like AAPR's own hotkey: flips Armed on the vessel's existing
 		/// Approach controller and nothing else (no selection, no master switch, so whatever is

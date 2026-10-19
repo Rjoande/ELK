@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.2
+
+### Changed
+- `AA_APR_TOGGLE` also works with **Approach Autopilot**, the new name of AtmosphereApproach. If both are installed, the key goes to AtmosphereApproach, the one that stays active.
+
 ## v1.1.1
 
 ### Fixed

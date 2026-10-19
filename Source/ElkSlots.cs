@@ -115,7 +115,8 @@ namespace ELK
 			// controller is active (AA's own rule), silent otherwise.
 			new ElkSlot("AA_SPEED_CONTROL", "AA: Speed control", ElkAaBridge.SpeedControlToggle, ElkGroups.AtmosphereAutopilot, ElkAaBridge.IsInstalled, ElkAaBridge.MasterOff),
 			new ElkSlot("AA_THRUST_BALANCING", "AA: Thrust balancing", ElkAaBridge.ThrustBalancingToggle, ElkGroups.AtmosphereAutopilot, ElkAaBridge.IsInstalled, ElkAaBridge.MasterOff),
-			// AtmosphereApproach (AA add-on): row shown only with its DLL
+			// AtmosphereApproach / ApproachAutopilot (AA add-on, same code
+			// under its old and new name): row shown only with either DLL
 			// loaded. Flips Armed only, like AAPR's own hotkey (no controller
 			// selection); arming without a tuned runway is refused by AAPR.
 			new ElkSlot("AA_APR_TOGGLE", "APR: Arm/disarm", ElkAaBridge.ApproachArmToggle, ElkGroups.AtmosphereAutopilot, ElkAaBridge.IsApproachInstalled, ElkAaBridge.ApproachDisarm),

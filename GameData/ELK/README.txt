@@ -7,7 +7,8 @@ ELK assigns hotkeys to functions KSP leaves unbound: toggling Brakes, and
 setting a specific SAS autopilot mode (Stability Assist, Prograde/Retrograde,
 Normal/Anti-normal, Radial in/out, Target/Anti-target, Maneuver node). With
 the mod installed it also offers hotkeys for AtmosphereAutopilot,
-AtmosphereApproach, MechJeb2 and NavUtilities (NavInstruments Continued).
+Approach Autopilot (formerly AtmosphereApproach), MechJeb2 and NavUtilities
+(NavInstruments Continued).
 Keys can be grouped into "key sets" that rotate with one press, so the same
 keypad drives the stock SAS on a rocket and Cruise Flight on a plane. An
 optional in-game toolbar (Space Center only) lets you assign keys by
@@ -100,7 +101,8 @@ AtmosphereAutopilot
     up/down (steps configurable), "ALT bug = current altitude, hold
     engaged", "HDG bug = current heading, heading hold"; FBW Moderation /
     Rocket mode / Coordinated turn; speed control; thrust balancing.
-    With AtmosphereApproach installed: APR arm/disarm.
+    With Approach Autopilot (or AtmosphereApproach) installed: APR
+    arm/disarm; with both, the key goes to AtmosphereApproach.
     Import from AA / Export to AA / Restore AA keys move AA's own hotkeys
     to ELK and back, so nothing fires twice.
 
@@ -259,7 +261,7 @@ Dependencies (toolbar only; bundled in the "with-dependencies" zip):
 
 Optional, never required or bundled, reached by reflection:
     AtmosphereAutopilot   https://github.com/Boris-Barboris/AtmosphereAutopilot
-    AtmosphereApproach    https://github.com/Rjoande/AtmosphereApproach
+    Approach Autopilot    https://github.com/Rjoande/ApproachAutopilot
     MechJeb2              https://github.com/MuMech/MechJeb2
     NavInstruments Cont.  https://github.com/linuxgurugamer/NavInstruments
 

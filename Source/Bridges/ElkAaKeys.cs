@@ -51,7 +51,7 @@ namespace ELK
 			{ "AA_FBW_COORD_TURN", "coord_turn_keycode" },
 			{ "AA_SPEED_CONTROL", "spd_control_toggle_key" },
 			{ "AA_THRUST_BALANCING", "balancing_toggle_key" },
-			{ "AA_APR_TOGGLE", "apr_arm_key" },   // AtmosphereApproach
+			{ "AA_APR_TOGGLE", "apr_arm_key" },   // AtmosphereApproach / ApproachAutopilot
 		};
 
 		// Declaring class -> Global_settings.txt node, used only when the file
@@ -63,7 +63,7 @@ namespace ELK
 			{ "StandardFlyByWire", "Standard_Fly-By-Wire" },
 			{ "ProgradeThrustController", "Prograde_thrust_controller" },
 			{ "FlightModel", "Flight_model" },
-			{ "ApproachController", "Approach_controller" },   // AtmosphereApproach
+			{ "ApproachController", "Approach_controller" },   // AtmosphereApproach / ApproachAutopilot
 		};
 
 		// AA's compiled defaults, used by Restore when no backup exists.
@@ -123,7 +123,7 @@ namespace ELK
 			Assembly apr = ElkAaBridge.ApproachAssembly;
 			if (apr != null)
 				Scan(apr, hotkeyAttr, nameField, serialAttr, dataNameField);
-			Debug.Log("[ELK] " + ModLabel + ": " + hotkeys.Count + " native hotkeys found" + (apr != null ? " (AtmosphereApproach included)" : ""));
+			Debug.Log("[ELK] " + ModLabel + ": " + hotkeys.Count + " native hotkeys found" + (apr != null ? " (" + ElkAaBridge.ApproachName + " included)" : ""));
 		}
 
 		private static void Scan(Assembly assembly, Type hotkeyAttr, FieldInfo nameField, Type serialAttr, FieldInfo dataNameField)
