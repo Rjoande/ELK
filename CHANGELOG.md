@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+- `slot-guide.pdf` now ships inside `GameData/ELK/` and lists the `AA_APR_TOGGLE` slot (Approach Autopilot / AtmosphereApproach).
+
 ## v1.1.2
 
 ### Changed
