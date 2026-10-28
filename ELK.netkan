@@ -20,5 +20,6 @@ depends:
   - name: ToolbarController
 suggests:
   - name: AtmosphereAutopilot
+  - name: ApproachAutopilot
   - name: MechJeb2
   - name: NavUtilitiesUpdated
