@@ -68,6 +68,21 @@ namespace ELK
 
 			// --- Squad (ELK_Squad.cfg): stock functions ---
 			new ElkSlot("BRAKES_TOGGLE", "Brakes: toggle", FireBrakesToggle, FireBrakesOff),
+			// No BRAKES_ON / BRAKES_OFF on purpose: stock B already does
+			// SetGroup(Brakes, true) on key-down and false on key-up (verified
+			// decompiled, FlightInputHandler), so "off" is a tap of B and an
+			// "on" key would only be BRAKES_TOGGLE that cannot release.
+
+			// Gear and lights: SetGroup(group, state) is what the flight UI's
+			// GEAR / LIGHTS buttons call (ActionGroupToggleButton.SetToggle).
+			// With the group already in the requested state SetGroup is a
+			// no-op, even when a part was moved from its PAW (the PAW never
+			// updates the group); gear_resync / lights_resync cover that.
+			// No `off`: leaving a key set never raises the gear or kills the lights.
+			new ElkSlot("GEAR_DOWN", "Gear: down", GearSlot(true)),
+			new ElkSlot("GEAR_UP", "Gear: up", GearSlot(false)),
+			new ElkSlot("LIGHTS_ON", "Lights: on", LightsSlot(true)),
+			new ElkSlot("LIGHTS_OFF", "Lights: off", LightsSlot(false)),
 
 			new ElkSlot("SAS_STABILITY", "SAS: Stability Assist", SasSlot(VesselAutopilot.AutopilotMode.StabilityAssist), FireSasOff) { mapDefault = true },
 			new ElkSlot("SAS_PROGRADE", "SAS: Prograde", SasSlot(VesselAutopilot.AutopilotMode.Prograde), FireSasOff) { mapDefault = true },
@@ -114,6 +129,11 @@ namespace ELK
 			// Flag only: takes effect while a controller using the thrust
 			// controller is active (AA's own rule), silent otherwise.
 			new ElkSlot("AA_SPEED_CONTROL", "AA: Speed control", ElkAaBridge.SpeedControlToggle, ElkGroups.AtmosphereAutopilot, ElkAaBridge.IsInstalled, ElkAaBridge.MasterOff),
+			// Speed setpoint by aa_spd_step in the unit shown in AA's window
+			// (Mach: step * 0.01), also with speed control off (preset). AA has
+			// no native key for this. No-op until the thrust controller exists.
+			new ElkSlot("AA_SPD_UP", "AA: SPD bug up", ElkAaBridge.SpeedBugUp, ElkGroups.AtmosphereAutopilot, ElkAaBridge.IsInstalled, ElkAaBridge.MasterOff),
+			new ElkSlot("AA_SPD_DOWN", "AA: SPD bug down", ElkAaBridge.SpeedBugDown, ElkGroups.AtmosphereAutopilot, ElkAaBridge.IsInstalled, ElkAaBridge.MasterOff),
 			new ElkSlot("AA_THRUST_BALANCING", "AA: Thrust balancing", ElkAaBridge.ThrustBalancingToggle, ElkGroups.AtmosphereAutopilot, ElkAaBridge.IsInstalled, ElkAaBridge.MasterOff),
 			// AtmosphereApproach / ApproachAutopilot (AA add-on, same code
 			// under its old and new name): row shown only with either DLL
@@ -207,6 +227,80 @@ namespace ELK
 		private static void FireSasOff(Vessel vessel)
 		{
 			vessel.ActionGroups.SetGroup(KSPActionGroup.SAS, false);
+		}
+
+		private static Action<Vessel> GearSlot(bool down)
+		{
+			return delegate(Vessel vessel)
+			{
+				ActionGroupList groups = vessel.ActionGroups;
+				if (groups[KSPActionGroup.Gear] != down)
+				{
+					groups.SetGroup(KSPActionGroup.Gear, down);
+					return;
+				}
+
+				// State already matches: deliberate no-op, like the GEAR
+				// button, unless gear_resync is on. ModuleWheelDeployment
+				// deploys on Activate only from retracted/retracting and
+				// retracts on Deactivate only from deployed/deploying, so parts
+				// already there are untouched. Verified decompiled.
+				if (ElkConfig.GearResync)
+				{
+					ResendGroup(vessel, KSPActionGroup.Gear, down);
+				}
+			};
+		}
+
+		private static Action<Vessel> LightsSlot(bool on)
+		{
+			return delegate(Vessel vessel)
+			{
+				ActionGroupList groups = vessel.ActionGroups;
+				if (groups[KSPActionGroup.Light] != on)
+				{
+					groups.SetGroup(KSPActionGroup.Light, on);
+				}
+				else if (ElkConfig.LightsResync)
+				{
+					// ModuleLight.SetLightState(true) on a lit lamp only restarts
+					// its blink phase, not the fade. Verified decompiled.
+					ResendGroup(vessel, KSPActionGroup.Light, on);
+				}
+
+				// On EVA the LIGHTS button also calls ToggleLamp(): the helmet
+				// lamp is not in the action group. Verified decompiled.
+				if (vessel.isEVA && vessel.evaController != null && vessel.evaController.lampOn != on)
+				{
+					vessel.evaController.ToggleLamp();
+				}
+			};
+		}
+
+		/// <summary>Sends Activate (on) or Deactivate to every action of the group without flipping its state: the same action list and parameter ActionGroupList.ToggleGroup() builds, cooldown honoured. Verified decompiled.</summary>
+		private static void ResendGroup(Vessel vessel, KSPActionGroup group, bool on)
+		{
+			if (vessel.ActionGroups.CooldownTimeRemaining(group) > 0.0)
+				return;
+
+			int overrideGroup = 0;
+			bool overrideDefault = false;
+			if (GameSettings.ADDITIONAL_ACTION_GROUPS)
+			{
+				overrideGroup = vessel.GroupOverride;
+				if (overrideGroup > 0 && overrideGroup <= vessel.OverrideDefault.Length)
+				{
+					overrideDefault = vessel.OverrideDefault[overrideGroup - 1];
+				}
+			}
+			KSPActionParam param = new KSPActionParam(group,
+				on ? KSPActionType.Activate : KSPActionType.Deactivate);
+			List<BaseAction> actions = BaseAction.CreateActionList(vessel.parts, group, overrideGroup, overrideDefault, true);
+			for (int i = 0; i < actions.Count; i++)
+			{
+				actions[i].Invoke(param);
+			}
+			Debug.Log("[ELK] " + group + " resync: " + param.type + " resent to " + actions.Count + " actions");
 		}
 
 		private static void FireNavHsiToggle(Vessel vessel)

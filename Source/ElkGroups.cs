@@ -67,6 +67,7 @@ namespace ELK
 					new KeyValuePair<string, string>(ElkAaBridge.OptVsStep, "1"),
 					new KeyValuePair<string, string>(ElkAaBridge.OptAltStep, "50"),
 					new KeyValuePair<string, string>(ElkAaBridge.OptHdgStep, "1"),
+					new KeyValuePair<string, string>(ElkAaBridge.OptSpdStep, "5"),
 				}),
 			// Two tabs, ONE file (ELK_MechJeb2.cfg): the plain tab carries the
 			// options and the conflict scanner, the "+" tab only its slots.

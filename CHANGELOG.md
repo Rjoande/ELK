@@ -2,8 +2,17 @@
 
 ## [Unreleased]
 
+## v1.1.3
+
+### Added
+- `GEAR_DOWN` / `GEAR_UP` and `LIGHTS_ON` / `LIGHTS_OFF`: set the gear or the lights to one state, like clicking the GEAR or LIGHTS button of the flight UI (stock `G` and `U` only toggle). On EVA the lights keys also switch the helmet lamp. New `gear_resync` option (default off, checkbox in the Squad tab): when the GEAR light already shows the requested state, the gear keys send the command to the gear again, which also brings back in line a leg moved from its right-click menu. `lights_resync` does the same for the lights keys.
+- `AA_SPD_UP` / `AA_SPD_DOWN`: move AtmosphereAutopilot's speed setpoint by `aa_spd_step` (default 5) in the unit chosen in AA's window, Mach by step x 0.01. They also work with speed control off, to preset the speed, and never switch anything on. New `SPD step` field in the AtmosphereAutopilot tab.
+
+### Fixed
+- AtmosphereAutopilot and MechJeb2 keys: the first one pressed in a game session could do nothing (the mod's members were looked up only after the key had read them). Every key now works from the first press.
+
 ### Changed
-- `slot-guide.pdf` now ships inside `GameData/ELK/` and lists the `AA_APR_TOGGLE` slot (Approach Autopilot / AtmosphereApproach).
+- `slot-guide.pdf` now ships inside `GameData/ELK/` and covers every slot, tab by tab in the in-game order: key sets, brakes and SAS, then AtmosphereAutopilot (with `AA_APR_TOGGLE` for Approach Autopilot / AtmosphereApproach), MechJeb2 and NavUtilities.
 
 ## v1.1.2
 

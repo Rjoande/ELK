@@ -110,6 +110,9 @@ namespace ELK
 
 		// ---- resolution ----
 
+		// Every public action calls this first: cached members (targetNormalExists, sassTarget*,
+		// tmode*...) are passed as arguments to helpers and evaluated before those resolve, so
+		// the very first MechJeb key of a session would otherwise get null.
 		private static void Resolve()
 		{
 			if (resolved)
@@ -254,6 +257,7 @@ namespace ELK
 		/// <summary>Runs one of MechJebCore's own action-group methods, vessel-wide through MechJeb's master core; with mj_autoshow, opens the window of the module it drives.</summary>
 		public static void FireAction(Vessel vessel, string actionName)
 		{
+			Resolve();
 			if (!FireAction(vessel, actionName, AutoShow))
 				return;
 			// mj_navball: a SmartASS vector (not Off) reopens the navball. Engaged is
@@ -292,12 +296,13 @@ namespace ELK
 
 		// ---- `off` actions for sets_disengage: switch off, never open a window ----
 
-		public static void SmartAssOff(Vessel vessel) { FireAction(vessel, SmartAssOffAction, false); }
-		public static void TransOff(Vessel vessel) { FireAction(vessel, "OnTranslatronOffAction", false); }
+		public static void SmartAssOff(Vessel vessel) { Resolve(); FireAction(vessel, SmartAssOffAction, false); }
+		public static void TransOff(Vessel vessel) { Resolve(); FireAction(vessel, "OnTranslatronOffAction", false); }
 
 		/// <summary>Abort the node executor; no-op when it is not running.</summary>
 		public static void NodeAbort(Vessel vessel)
 		{
+			Resolve();
 			object master = Master(vessel);
 			object node = CoreField(master, coreNode);
 			if (node == null || nodeAbort == null || !IsEnabled(node))
@@ -315,6 +320,7 @@ namespace ELK
 		/// <summary>Ascent autopilot off if it is running (MechJeb's toggle action, guarded by Enabled so it never switches it on).</summary>
 		public static void AscentOff(Vessel vessel)
 		{
+			Resolve();
 			object master = Master(vessel);
 			if (master == null || coreAscent == null)
 				return;
@@ -471,6 +477,7 @@ namespace ELK
 		/// <summary>SmartASS NODE: only with a planned maneuver node (the button MechJeb shows only with patched conics unlocked).</summary>
 		public static void SmartAssNode(Vessel vessel)
 		{
+			Resolve();
 			if (vessel.patchedConicSolver == null || vessel.patchedConicSolver.maneuverNodes.Count == 0)
 				return;
 			SmartAss(vessel, sassTargetNode, false);
@@ -496,12 +503,14 @@ namespace ELK
 		/// <summary>SmartASS TARGET+/-: only with a vessel or body targeted (Mode.TARGET shows nothing otherwise).</summary>
 		public static void SmartAssTargetPlus(Vessel vessel)
 		{
+			Resolve();
 			if (TargetFlag(vessel, targetNormalExists))
 				SmartAss(vessel, sassTargetPlus, true);
 		}
 
 		public static void SmartAssTargetMinus(Vessel vessel)
 		{
+			Resolve();
 			if (TargetFlag(vessel, targetNormalExists))
 				SmartAss(vessel, sassTargetMinus, true);
 		}
@@ -530,6 +539,7 @@ namespace ELK
 
 		public static void TransKeepSurface(Vessel vessel)
 		{
+			Resolve();
 			object thrust;
 			object translatron = Translatron(vessel, out thrust);
 			TransSetMode(translatron, tmodeKeepSurface);
@@ -538,6 +548,7 @@ namespace ELK
 
 		public static void TransKeepOrbital(Vessel vessel)
 		{
+			Resolve();
 			object thrust;
 			object translatron = Translatron(vessel, out thrust);
 			TransSetMode(translatron, tmodeKeepOrbital);
@@ -578,16 +589,17 @@ namespace ELK
 			Show(translatron);
 		}
 
-		public static void TransSpeedUp(Vessel vessel) { TransSpeed(vessel, true, TransStep, 0.0); }
-		public static void TransSpeedDown(Vessel vessel) { TransSpeed(vessel, true, -TransStep, 0.0); }
+		public static void TransSpeedUp(Vessel vessel) { Resolve(); TransSpeed(vessel, true, TransStep, 0.0); }
+		public static void TransSpeedDown(Vessel vessel) { Resolve(); TransSpeed(vessel, true, -TransStep, 0.0); }
 		/// <summary>The window's "0" button; not MechJeb's OnTranslatronZeroSpeedAction, which writes TransSpdAct only.</summary>
-		public static void TransZero(Vessel vessel) { TransSpeed(vessel, false, 0.0, 0.0); }
+		public static void TransZero(Vessel vessel) { Resolve(); TransSpeed(vessel, false, 0.0, 0.0); }
 
 		/// <summary>Kill H/S: flips the flag like MechJeb's action. Translatron OFF with
 		/// mj_autoengage: engage KEEP_VERTICAL and switch the flag ON (the flag only
 		/// acts in KEEP_VERTICAL).</summary>
 		public static void TransKillHToggle(Vessel vessel)
 		{
+			Resolve();
 			object thrust;
 			object translatron = Translatron(vessel, out thrust);
 			if (translatron == null || thrust == null || thrustTmode == null || thrustTransKillH == null || tmodeOff == null)
@@ -614,6 +626,7 @@ namespace ELK
 		/// <summary>Land at the current position target: same gates as MechJeb's button (a position target set, vessel not landed).</summary>
 		public static void LandAtTarget(Vessel vessel)
 		{
+			Resolve();
 			if (vessel.LandedOrSplashed || !TargetFlag(vessel, targetPositionExists))
 				return;
 			object master = Master(vessel);
@@ -636,6 +649,7 @@ namespace ELK
 		/// <summary>Abort the landing autopilot; no-op when it is not running.</summary>
 		public static void LandAbort(Vessel vessel)
 		{
+			Resolve();
 			object master = Master(vessel);
 			object landing = CoreField(master, coreLanding);
 			if (landing == null || landingStop == null || !IsEnabled(landing))
@@ -653,6 +667,7 @@ namespace ELK
 		// Node executor: what MechJeb's own "Execute Next Node" toolbar button does.
 		public static void NodeExecuteToggle(Vessel vessel)
 		{
+			Resolve();
 			object master = Master(vessel);
 			object node = CoreField(master, coreNode);
 			if (node == null || nodeExecuteOne == null || nodeAbort == null)
@@ -686,6 +701,7 @@ namespace ELK
 		/// <summary>Show/hide MechJeb's master menu window.</summary>
 		public static void MenuToggle(Vessel vessel)
 		{
+			Resolve();
 			object master = Master(vessel);
 			object menu = VisibleModule(master, "MechJebModuleMenu");
 			if (menu == null || menuShowHide == null)

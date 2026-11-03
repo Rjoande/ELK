@@ -91,8 +91,13 @@ button doesn't clutter Flight/VAB/SPH/Tracking Station.
 ------------------------------------------------------------------------------
 
 Squad (stock)
-    Brakes toggle; the 10 SAS modes. An SAS key switches SAS on first if
-    needed (sas_autoengage) and brings back a hidden navball (sas_navball).
+    Brakes toggle; gear down / up and lights on / off (like the GEAR and
+    LIGHTS buttons of the flight UI; gear_resync and lights_resync, default
+    off, resend the command when the GEAR / LIGHTS light already shows it;
+    a part in that group whose action does not follow on/off flips on
+    every resend); the 10 SAS modes.
+    An SAS key switches SAS on first if needed (sas_autoengage) and brings
+    back a hidden navball (sas_navball).
 
 AtmosphereAutopilot
     Master switch, show/hide window, select Cruise Flight / Standard FBW,
@@ -100,7 +105,8 @@ AtmosphereAutopilot
     vertical motion, ALT <-> V/S, keys input mode, V/S / ALT / HDG bug
     up/down (steps configurable), "ALT bug = current altitude, hold
     engaged", "HDG bug = current heading, heading hold"; FBW Moderation /
-    Rocket mode / Coordinated turn; speed control; thrust balancing.
+    Rocket mode / Coordinated turn; speed control and speed setpoint
+    up/down (step in the unit shown in AA, Mach x 0.01); thrust balancing.
     With Approach Autopilot (or AtmosphereApproach) installed: APR
     arm/disarm; with both, the key goes to AtmosphereApproach.
     Import from AA / Export to AA / Restore AA keys move AA's own hotkeys
@@ -174,6 +180,7 @@ Per-tab options (each has a checkbox or a field in its tab):
                          controller first; false: only acts while it flies.
   aa_autoshow = false    open the AA window when a key switches it on.
   aa_vs_step = 1, aa_alt_step = 50, aa_hdg_step = 1   bug encoder steps.
+  aa_spd_step = 5   speed setpoint step, unit shown in AA (Mach: x 0.01).
   mj_autoengage = true   a Translatron speed key switches it on (Keep
                          vertical) first.
   mj_autoshow = false    open the MechJeb module's window when a key acts.
@@ -212,6 +219,10 @@ Do NOT use whatever key is bound to the stock Brakes action
 with a modifier. Any combo containing B can only ever disengage the brakes,
 never re-engage them. Pick a key with no stock binding at all and the
 conflict goes away entirely.
+
+There is no BRAKES_ON / BRAKES_OFF on purpose: stock B already sets the
+brakes on when pressed and off when released, so "off" is a tap of B and
+an "on" key would be BRAKES_TOGGLE without the release.
 
 The toolbar's conflict warning checks every stock keybinding and flags this
 collision live. A key typed by hand into the cfg does not get that check

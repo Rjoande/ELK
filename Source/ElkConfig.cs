@@ -14,10 +14,12 @@ namespace ELK
 {
 	public static class ElkConfig
 	{
-		public const string Version = "1.1.2";
+		public const string Version = "1.1.3";
 
 		private const string OptSasAutoEngage = "sas_autoengage";
 		private const string OptSasNavball = "sas_navball";
+		private const string OptGearResync = "gear_resync";
+		private const string OptLightsResync = "lights_resync";
 
 		// PluginData is a SIBLING of Plugins/, so the mod root is one level above
 		// the assembly's directory.
@@ -38,6 +40,18 @@ namespace ELK
 		public static bool SasNavball
 		{
 			get { return GetBool(ElkGroups.Squad, OptSasNavball, true); }
+		}
+
+		/// <summary>When true, a gear key whose state the GEAR group already shows resends Activate/Deactivate to the group's actions instead of no-opping (see ElkSlots.GearSlot). Lives in ELK_Squad.cfg.</summary>
+		public static bool GearResync
+		{
+			get { return GetBool(ElkGroups.Squad, OptGearResync, false); }
+		}
+
+		/// <summary>Same as GearResync for the lights keys (see ElkSlots.LightsSlot). Lives in ELK_Squad.cfg.</summary>
+		public static bool LightsResync
+		{
+			get { return GetBool(ElkGroups.Squad, OptLightsResync, false); }
 		}
 
 		private static readonly Dictionary<string, ElkBind> binds = new Dictionary<string, ElkBind>();
@@ -326,6 +340,18 @@ namespace ELK
 		public static void SetSasNavball(bool value)
 		{
 			SetBool(ElkGroups.Squad, OptSasNavball, value);
+		}
+
+		/// <summary>Sets the gear resync option and persists it to ELK_Squad.cfg.</summary>
+		public static void SetGearResync(bool value)
+		{
+			SetBool(ElkGroups.Squad, OptGearResync, value);
+		}
+
+		/// <summary>Sets the lights resync option and persists it to ELK_Squad.cfg.</summary>
+		public static void SetLightsResync(bool value)
+		{
+			SetBool(ElkGroups.Squad, OptLightsResync, value);
 		}
 
 		/// <summary>Switches a group's hotkeys on or off in memory and persists it to that group's file.</summary>

@@ -20,6 +20,10 @@ namespace ELK
 		public const string OptVsStep = "aa_vs_step";
 		public const string OptAltStep = "aa_alt_step";
 		public const string OptHdgStep = "aa_hdg_step";
+		public const string OptSpdStep = "aa_spd_step";
+
+		// Mach is shown with two decimals: one SPD step moves it by step * 0.01.
+		private const float MachStepScale = 0.01f;
 
 		private static bool installChecked;
 		private static bool installed;
@@ -61,6 +65,11 @@ namespace ELK
 		private static PropertyInfo fbwRocketMode;
 		private static PropertyInfo fbwCoordTurn;
 		private static FieldInfo ptcSpeedControl;
+		private static FieldInfo ptcSetpoint;            // ProgradeThrustController.setpoint (SpeedSetpoint struct)
+		private static FieldInfo ptcSetpointField;       // ProgradeThrustController.setpoint_field (DelayedFieldFloat)
+		private static FieldInfo spValue;                // SpeedSetpoint.value, in the unit shown
+		private static FieldInfo spType;                 // SpeedSetpoint.type
+		private static object stMach;                    // SpeedType.Mach
 		private static FieldInfo fmBalanceEngines;
 		private static MethodInfo postStatusMessage;
 
@@ -166,8 +175,16 @@ namespace ELK
 			get { return ElkConfig.GetFloat(ElkGroups.AtmosphereAutopilot, OptHdgStep, 1f); }
 		}
 
+		public static float SpdStep
+		{
+			get { return ElkConfig.GetFloat(ElkGroups.AtmosphereAutopilot, OptSpdStep, 5f); }
+		}
+
 		// ---- resolution ----
 
+		// Every public action calls this first: the types (topType, cruiseType, ptcType...)
+		// are passed as arguments to Module/Existing/Engaged/Activate and evaluated before
+		// those resolve, so the very first AA key of a session would otherwise get null.
 		private static void Resolve()
 		{
 			if (resolved)
@@ -221,6 +238,14 @@ namespace ELK
 			fbwRocketMode = ElkReflection.FindProperty(fbwType, "RocketMode", pubInst, ModLabel);
 			fbwCoordTurn = ElkReflection.FindProperty(fbwType, "Coord_turn", pubInst, ModLabel);
 			ptcSpeedControl = ElkReflection.FindField(ptcType, "spd_control_enabled", pubInst, ModLabel);
+			ptcSetpoint = ElkReflection.FindField(ptcType, "setpoint", pubInst, ModLabel);
+			ptcSetpointField = ElkReflection.FindField(ptcType, "setpoint_field", anyInst, ModLabel);
+			Type setpointType = ElkReflection.FindType(assembly, Ns + "SpeedSetpoint", ModLabel);
+			spValue = ElkReflection.FindField(setpointType, "value", pubInst, ModLabel);
+			spType = ElkReflection.FindField(setpointType, "type", pubInst, ModLabel);
+			Type speedTypeEnum = ElkReflection.FindType(assembly, Ns + "SpeedType", ModLabel);
+			if (speedTypeEnum != null)
+				stMach = ParseEnum(speedTypeEnum, "Mach");
 			fmBalanceEngines = ElkReflection.FindField(flightModelType, "balance_engines", pubInst, ModLabel);
 			postStatusMessage = ElkReflection.FindMethod(messageType, "post_status_message", BindingFlags.Public | BindingFlags.Static, new Type[] { typeof(string) }, ModLabel);
 
@@ -231,6 +256,7 @@ namespace ELK
 				levelFlightMode, courseHoldMode, waypointMode, verticalControl, heightMode, prevHeightMode,
 				desiredCourse, desiredAltitude, desiredVertSetpoint, useKeys, delayedValue, hmAltitude, hmVerticalSpeed, hmFlightPathAngle,
 				fbwModeration, fbwRocketMode, fbwCoordTurn, ptcSpeedControl, fmBalanceEngines, postStatusMessage,
+				ptcSetpoint, ptcSetpointField, spValue, spType, stMach,
 				topType, cruiseType, fbwType, ptcType, flightModelType,
 			};
 			int found = 0;
@@ -483,6 +509,7 @@ namespace ELK
 
 		public static void ToggleMaster(Vessel vessel)
 		{
+			Resolve();
 			object top = Module(vessel, topType);
 			if (top == null)
 				return;
@@ -504,6 +531,7 @@ namespace ELK
 		/// <summary>sets_disengage: master off, which stops every AA controller; no-op if already off.</summary>
 		public static void MasterOff(Vessel vessel)
 		{
+			Resolve();
 			object top = Module(vessel, topType);
 			if (top == null || !IsActive(top))
 				return;
@@ -521,6 +549,7 @@ namespace ELK
 
 		public static void ToggleGui(Vessel vessel)
 		{
+			Resolve();
 			object top = Module(vessel, topType);
 			if (top == null || toggleGui == null)
 				return;
@@ -536,11 +565,13 @@ namespace ELK
 
 		public static void SelectFbw(Vessel vessel)
 		{
+			Resolve();
 			Activate(vessel, fbwType);
 		}
 
 		public static void SelectCruise(Vessel vessel)
 		{
+			Resolve();
 			Activate(vessel, cruiseType);
 		}
 
@@ -548,6 +579,7 @@ namespace ELK
 		/// (AA's default controller on a fresh vessel).</summary>
 		public static void ToggleFd(Vessel vessel)
 		{
+			Resolve();
 			object top = Module(vessel, topType);
 			if (top == null)
 				return;
@@ -578,11 +610,13 @@ namespace ELK
 
 		public static void CruiseLevel(Vessel vessel)
 		{
+			Resolve();
 			SetCruiseMode(vessel, levelFlightMode, "Level flight mode selected");
 		}
 
 		public static void CruiseHeading(Vessel vessel)
 		{
+			Resolve();
 			// CourseHoldMode's setter silently refuses beyond 80 deg of
 			// latitude (AA's own rule); the message still shows, as in AA.
 			SetCruiseMode(vessel, courseHoldMode, "Heading hold mode selected");
@@ -590,6 +624,7 @@ namespace ELK
 
 		public static void CruiseWaypoint(Vessel vessel)
 		{
+			Resolve();
 			SetCruiseMode(vessel, waypointMode, "Waypoint tracking mode selected");
 		}
 
@@ -623,16 +658,19 @@ namespace ELK
 
 		public static void CruiseVsToggle(Vessel vessel)
 		{
+			Resolve();
 			CruiseHeightToggle(vessel, hmVerticalSpeed, "Vertical speed control engaged", "Vertical speed control disengaged");
 		}
 
 		public static void CruiseAltToggle(Vessel vessel)
 		{
+			Resolve();
 			CruiseHeightToggle(vessel, hmAltitude, "Altitude hold engaged", "Altitude hold disengaged");
 		}
 
 		public static void CruiseVerticalToggle(Vessel vessel)
 		{
+			Resolve();
 			bool switchedOn;
 			object cruise = Engaged(vessel, cruiseType, out switchedOn);
 			if (cruise == null || verticalControl == null)
@@ -656,6 +694,7 @@ namespace ELK
 		/// Without that private field: Altitude <-> V/S.</summary>
 		public static void CruiseSetpointTypeToggle(Vessel vessel)
 		{
+			Resolve();
 			object cruise = Engaged(vessel, cruiseType);
 			if (cruise == null || heightMode == null || hmAltitude == null || hmVerticalSpeed == null)
 				return;
@@ -759,18 +798,19 @@ namespace ELK
 			WriteBug(bug, value, bugField.Name);
 		}
 
-		public static void CruiseVsUp(Vessel vessel) { CruiseBug(vessel, desiredVertSetpoint, VsStep, false); }
-		public static void CruiseVsDown(Vessel vessel) { CruiseBug(vessel, desiredVertSetpoint, -VsStep, false); }
-		public static void CruiseAltUp(Vessel vessel) { CruiseBug(vessel, desiredAltitude, AltStep, false); }
-		public static void CruiseAltDown(Vessel vessel) { CruiseBug(vessel, desiredAltitude, -AltStep, false); }
-		public static void CruiseHdgUp(Vessel vessel) { CruiseBug(vessel, desiredCourse, HdgStep, true); }
-		public static void CruiseHdgDown(Vessel vessel) { CruiseBug(vessel, desiredCourse, -HdgStep, true); }
+		public static void CruiseVsUp(Vessel vessel) { Resolve(); CruiseBug(vessel, desiredVertSetpoint, VsStep, false); }
+		public static void CruiseVsDown(Vessel vessel) { Resolve(); CruiseBug(vessel, desiredVertSetpoint, -VsStep, false); }
+		public static void CruiseAltUp(Vessel vessel) { Resolve(); CruiseBug(vessel, desiredAltitude, AltStep, false); }
+		public static void CruiseAltDown(Vessel vessel) { Resolve(); CruiseBug(vessel, desiredAltitude, -AltStep, false); }
+		public static void CruiseHdgUp(Vessel vessel) { Resolve(); CruiseBug(vessel, desiredCourse, HdgStep, true); }
+		public static void CruiseHdgDown(Vessel vessel) { Resolve(); CruiseBug(vessel, desiredCourse, -HdgStep, true); }
 
 		/// <summary>ALT bug = current altitude ASL, then altitude hold engaged (never
 		/// disengaged: "sync" always means "hold this"). Plain encoders only move
 		/// the bug.</summary>
 		public static void CruiseAltSync(Vessel vessel)
 		{
+			Resolve();
 			object cruise = Engaged(vessel, cruiseType);
 			object bug;
 			float value;
@@ -795,6 +835,7 @@ namespace ELK
 		/// <summary>HDG bug = current compass heading of the active vessel, then heading hold selected (same as the HDG mode key).</summary>
 		public static void CruiseHdgSync(Vessel vessel)
 		{
+			Resolve();
 			object cruise = Engaged(vessel, cruiseType);
 			object bug;
 			float value;
@@ -844,15 +885,16 @@ namespace ELK
 			RefreshMainMenu();
 		}
 
-		public static void FbwModeration(Vessel vessel) { FbwToggle(vessel, fbwModeration); }
-		public static void FbwRocketMode(Vessel vessel) { FbwToggle(vessel, fbwRocketMode); }
-		public static void FbwCoordTurn(Vessel vessel) { FbwToggle(vessel, fbwCoordTurn); }
+		public static void FbwModeration(Vessel vessel) { Resolve(); FbwToggle(vessel, fbwModeration); }
+		public static void FbwRocketMode(Vessel vessel) { Resolve(); FbwToggle(vessel, fbwRocketMode); }
+		public static void FbwCoordTurn(Vessel vessel) { Resolve(); FbwToggle(vessel, fbwCoordTurn); }
 
 		// ---- slot actions: other modules ----
 
 		/// <summary>Speed control flag of the thrust controller; only has an effect while a controller that uses it is active (AA's own rule).</summary>
 		public static void SpeedControlToggle(Vessel vessel)
 		{
+			Resolve();
 			object ptc = Existing(vessel, ptcType, "Prograde thrust controller");
 			if (ptc == null || ptcSpeedControl == null)
 				return;
@@ -868,8 +910,45 @@ namespace ELK
 			}
 		}
 
+		/// <summary>SPD bug encoders: move the speed setpoint of the vessel's prograde thrust
+		/// controller (one per vessel, shared by Cruise, FBW, Mouse Director and AoA hold) by one
+		/// step in the unit chosen in AA's window, Mach by step * 0.01; never below 0. Like the
+		/// Cruise bugs they never switch anything on and work with speed control off (preset).
+		/// Both copies are written, as AA's throttle-key path does: the struct the controller
+		/// tracks and the window's text field, which overrides the struct while the window is open.</summary>
+		private static void SpeedBug(Vessel vessel, float direction)
+		{
+			object ptc = Existing(vessel, ptcType, "Prograde thrust controller");
+			if (ptc == null || ptcSetpoint == null || ptcSetpointField == null || spValue == null || spType == null || delayedValue == null)
+				return;
+			try
+			{
+				object setpoint = ptcSetpoint.GetValue(ptc);   // boxed copy of the struct
+				object unit = spType.GetValue(setpoint);
+				float step = SpdStep;
+				if (stMach != null && stMach.Equals(unit))
+					step *= MachStepScale;
+				float value = (float)spValue.GetValue(setpoint) + direction * step;
+				if (value < 0f)
+					value = 0f;
+				spValue.SetValue(setpoint, value);             // mutates the box, type and vessel kept
+				ptcSetpoint.SetValue(ptc, setpoint);
+				object field = ptcSetpointField.GetValue(ptc);
+				if (field != null)
+					delayedValue.SetValue(field, value, null);
+			}
+			catch (Exception e)
+			{
+				WarnInvoke("setpoint", e);
+			}
+		}
+
+		public static void SpeedBugUp(Vessel vessel) { Resolve(); SpeedBug(vessel, 1f); }
+		public static void SpeedBugDown(Vessel vessel) { Resolve(); SpeedBug(vessel, -1f); }
+
 		public static void ThrustBalancingToggle(Vessel vessel)
 		{
+			Resolve();
 			object fm = Existing(vessel, flightModelType, "Flight model");
 			if (fm == null || fmBalanceEngines == null)
 				return;

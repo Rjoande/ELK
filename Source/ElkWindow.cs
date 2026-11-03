@@ -373,7 +373,7 @@ namespace ELK
 			return false;
 		}
 
-		/// <summary>The Squad tab's option: whether an SAS mode hotkey may switch SAS on.
+		/// <summary>The Squad tab's options: SAS auto-engage, navball, gear and lights resync.
 		/// Committed on click, like a capture.</summary>
 		private void DrawSasAutoEngageToggle()
 		{
@@ -395,6 +395,24 @@ namespace ELK
 			if (wantedNavball != ElkConfig.SasNavball)
 			{
 				ElkConfig.SetSasNavball(wantedNavball);
+			}
+
+			GUI.enabled = !ElkCapture.IsCapturing;
+			bool wantedResync = GUILayout.Toggle(ElkConfig.GearResync,
+				" Gear key resends the command if GEAR already shows it");
+			GUI.enabled = true;
+			if (wantedResync != ElkConfig.GearResync)
+			{
+				ElkConfig.SetGearResync(wantedResync);
+			}
+
+			GUI.enabled = !ElkCapture.IsCapturing;
+			bool wantedLightsResync = GUILayout.Toggle(ElkConfig.LightsResync,
+				" Lights key resends the command if LIGHTS already shows it");
+			GUI.enabled = true;
+			if (wantedLightsResync != ElkConfig.LightsResync)
+			{
+				ElkConfig.SetLightsResync(wantedLightsResync);
 			}
 			GUILayout.Space(6);
 		}
@@ -419,6 +437,7 @@ namespace ELK
 			DrawStepField(ElkGroups.AtmosphereAutopilot, "V/S step", ElkAaBridge.OptVsStep, 1f);
 			DrawStepField(ElkGroups.AtmosphereAutopilot, "ALT step", ElkAaBridge.OptAltStep, 50f);
 			DrawStepField(ElkGroups.AtmosphereAutopilot, "HDG step", ElkAaBridge.OptHdgStep, 1f);
+			DrawStepField(ElkGroups.AtmosphereAutopilot, "SPD step", ElkAaBridge.OptSpdStep, 5f);
 			GUILayout.FlexibleSpace();
 			GUILayout.EndHorizontal();
 

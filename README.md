@@ -39,6 +39,10 @@ Every key ships **empty**. This is deliberate: ELK never picks a default for you
 | Slot | Does |
 |---|---|
 | `BRAKES_TOGGLE` | Brakes on/off (a real parking brake). |
+| `GEAR_DOWN`, `GEAR_UP` | Gear down / up, like clicking the GEAR button of the flight UI into that state - stock `G` only toggles. Already in that state: nothing, unless `gear_resync` (default off, checkbox in the Squad tab) resends the command, which also fixes a leg moved from its right-click menu. |
+| `LIGHTS_ON`, `LIGHTS_OFF` | Lights on / off, the same way (stock `U` only toggles), with `lights_resync` (default off) for a lamp switched from its menu; on EVA, the helmet lamp too. |
+
+The resync options resend the command to *every* action in the group. Gear, lights and any part whose action follows on/off stay in line, but a part whose action does not (a one-way Extend/Retract, some toggles) flips on every resend: with the option on, keep such parts out of the Gear / Lights groups.
 | `SAS_STABILITY`, `SAS_PROGRADE`, `SAS_RETROGRADE`, `SAS_NORMAL`, `SAS_ANTINORMAL`, `SAS_RADIAL_IN`, `SAS_RADIAL_OUT`, `SAS_TARGET`, `SAS_ANTITARGET`, `SAS_MANEUVER` | Select that SAS mode; switches SAS on first if needed (`sas_autoengage`). Does nothing when the mode isn't available (no node, no target) - checked before SAS is engaged. Radial in/out follow the navball markers. |
 
 **AtmosphereAutopilot tab** - `ELK_AtmosphereAutopilot.cfg` (needs [AtmosphereAutopilot](https://github.com/Boris-Barboris/AtmosphereAutopilot))
@@ -58,6 +62,7 @@ Every key ships **empty**. This is deliberate: ELK never picks a default for you
 | `AA_CF_ALT_SYNC`, `AA_CF_HDG_SYNC` | Altitude bug = current altitude and hold engaged; heading bug = current heading and heading hold selected. |
 | `AA_FBW_MODERATION`, `AA_FBW_ROCKET`, `AA_FBW_COORD_TURN` | Standard FBW toggles. |
 | `AA_SPEED_CONTROL`, `AA_THRUST_BALANCING` | Speed control / thrust balancing flags (effective while a controller using them is active, AA's own rule). |
+| `AA_SPD_UP/DOWN` | Move the speed setpoint by `aa_spd_step` in the unit chosen in AA's window (m/s, kts, IAS, kIAS; Mach by step x 0.01). Like the bug keys, they never switch anything on: the speed can be preset with speed control off. AA has no native key for this. |
 | `AA_APR_TOGGLE` | **Approach Autopilot** (or AtmosphereApproach, its former name) only: APR arm/disarm, same as its own hotkey: it only flips the arm state, without selecting the controller or touching the master switch. The row appears only with either installed; with both, the key goes to AtmosphereApproach, since Approach Autopilot disables itself until the old folder is deleted. |
 
 With `aa_autoengage` (default on) a Cruise mode, hold, sync or FBW toggle key pressed while that controller is off switches AA on with it first, so one press does what its name says; off, those keys only act while their controller is already flying, like AA's own hotkeys. `aa_autoshow` (default off) opens the AA window whenever a key switches something on.
@@ -133,6 +138,8 @@ ELK
 	hotkeys = true           // false: every hotkey of this tab off, keys kept
 	sas_autoengage = true
 	sas_navball = true
+	gear_resync = false
+	lights_resync = false
 	BRAKES_TOGGLE
 	{
 		key =                // the hotkey
@@ -151,7 +158,7 @@ ELK
 
 (Each node name and brace on its own line: stock's config parser doesn't handle inline `NODE { key = X }`.)
 
-Tab options: `sas_autoengage`, `sas_navball` (Squad); `aa_autoengage`, `aa_autoshow`, `aa_vs_step` = 1, `aa_alt_step` = 50, `aa_hdg_step` = 1 (AtmosphereAutopilot); `mj_autoengage`, `mj_autoshow`, `mj_trans_step` = 1, `mj_navball` (MechJeb2). All have a checkbox or field in their tab.
+Tab options: `sas_autoengage`, `sas_navball`, `gear_resync`, `lights_resync` (Squad); `aa_autoengage`, `aa_autoshow`, `aa_vs_step` = 1, `aa_alt_step` = 50, `aa_hdg_step` = 1, `aa_spd_step` = 5 (AtmosphereAutopilot); `mj_autoengage`, `mj_autoshow`, `mj_trans_step` = 1, `mj_navball` (MechJeb2). All have a checkbox or field in their tab.
 
 `sas_autoengage = true` (the default) means an SAS mode key pressed while SAS is *off* switches SAS on and selects that mode in one press, exactly as if you had pressed the stock SAS key (<kbd>T</kbd>) first. Set it to `false` and the SAS keys only ever change mode while SAS is already on. Either way a mode key still does nothing when the mode itself isn't available (*Maneuver* with no node planned, *Target* with nothing targeted): ELK checks that before engaging anything, so a dead key press can't leave you with SAS switched on behind your back.
 
@@ -168,6 +175,8 @@ The AtmosphereAutopilot tab also has **Import from AA** (moves AA's own hotkeys 
 A "preset" is one or more per-tab cfg files with the keys already filled in; `ELK.cfg` stays yours. You can find a selection in [`Presets/`](Presets/), with its own README on making and installing them. To use one, close KSP, replace the matching file(s) in `GameData/ELK/PluginData/`, and relaunch.
 
 ## Why not bind Brakes to `B`
+
+(And why there is no `BRAKES_ON` / `BRAKES_OFF`: stock `B` already sets the brakes on when pressed and off when released, so "off" is just a tap of `B`, and an "on" key would be `BRAKES_TOGGLE` minus the release.)
 
 **Don't use whatever key is currently bound to the stock *Brakes* action** (`Settings > Input > BRAKES`, `B` by default) as `BRAKES_TOGGLE`'s key, not even with a modifier. Any combo containing `B` can only ever *disengage* the brakes, never re-engage them. A key with no stock binding at all sidesteps the conflict entirely. The toolbar's conflict warning checks every stock `GameSettings` keybinding (via reflection) and would flag this collision live.
 
