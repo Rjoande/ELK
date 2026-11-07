@@ -190,6 +190,12 @@ Thanks to Boris-Barboris (AtmosphereAutopilot), the MechJeb team, kujuman and li
 
 Built and tested against KSP 1.12.5. No mod dependency for the hotkeys; the toolbar needs ToolbarControl/ClickThroughBlocker. Some controllers deliver one press as two: ELK ignores a second press of the same hotkey within 0.15 s and logs every press as `[ELK] <slot> fired`, so `Player.log` tells you exactly what fired and what didn't.
 
+**Operating systems.** Tested on Windows only. ELK has no platform-specific code (Unity's standard input, no native calls), so it should work on Linux and macOS too, but that is untested - reports are welcome. Things to keep in mind there:
+
+- **Joystick buttons** are bound by device name, and the matching of names to Unity's joystick numbers has only been verified on Windows. If a bound button stops firing after replugging or relaunching, rebind it and attach your `Player.log` to the report (Linux: `~/.config/unity3d/Squad/Kerbal Space Program/Player.log`; macOS: `~/Library/Logs/Squad/Kerbal Space Program/Player.log`).
+- A controller or panel that relies on a Windows-only vendor driver for its buttons may not be seen by Unity at all on other systems; ELK can only bind what the game sees as a key or joystick button.
+- **macOS:** `Command` works as a modifier, but some combinations (`Cmd+Q`, `Cmd+H`, `Cmd+Tab`...) are taken by the system before KSP sees them; F-keys may need `Fn`, and keyboards without a numeric keypad can't use the `NumPad` preset.
+
 ## Contributing
 
 Want to propose a new hotkey slot or a new supported mod? See [CONTRIBUTING.md](CONTRIBUTING.md).
