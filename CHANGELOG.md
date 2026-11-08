@@ -1,6 +1,9 @@
 # Changelog
 
-## [Unreleased]
+## v1.1.4
+
+### Changed
+- **AtmosphereAutopilot tab:** keys that existed only in an unofficial AA build are no longer looked up.
 
 ## v1.1.3
 
