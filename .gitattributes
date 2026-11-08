@@ -1,0 +1,5 @@
+# Binary payload: never convert line endings.
+*.pdf binary
+*.dll binary
+*.png binary
+*.zip binary
