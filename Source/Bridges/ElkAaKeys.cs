@@ -25,27 +25,16 @@ namespace ELK
 		private const string SerialAttrTypeName = "AtmosphereAutopilot.GlobalSerializable";
 		private const string BackupNodeName = "ELK_AA_KEYS_BACKUP";
 
-		// ELK slot id -> AA hotkey key (== field name). Slots with no AA
-		// counterpart (GUI toggle, select FBW/Cruise, ALT/HDG sync) are
-		// simply absent here.
+		// ELK slot id -> AA hotkey key (== field name), the 9 hotkeys of
+		// official AA 1.6.1 plus the AAPR add-on's. Slots AA has no hotkey
+		// for (GUI toggle, select FBW/Cruise, FD, lateral modes, V/S and ALT
+		// engage, bug up/down/sync, SPD bug) are simply absent here.
 		private static readonly string[,] SlotToKey =
 		{
 			{ "AA_MASTER_TOGGLE", "master_switch_key" },
-			{ "AA_FD_TOGGLE", "fd_switch_key" },
-			{ "AA_CF_LEVEL", "level_flight_key" },
-			{ "AA_CF_HEADING", "course_hold_key" },
-			{ "AA_CF_WAYPOINT", "waypoint_key" },
-			{ "AA_CF_VS_TOGGLE", "vspeed_select_key" },
-			{ "AA_CF_ALT_TOGGLE", "altitude_select_key" },
 			{ "AA_CF_VERTICAL_TOGGLE", "vertical_control_key" },
 			{ "AA_CF_SETPOINT_TYPE_TOGGLE", "toggle_vertical_setpoint_type_key" },
 			{ "AA_CF_KEYS_MODE_TOGGLE", "switch_key_mode" },
-			{ "AA_CF_VS_UP", "vspeed_up_key" },
-			{ "AA_CF_VS_DOWN", "vspeed_down_key" },
-			{ "AA_CF_ALT_UP", "altitude_up_key" },
-			{ "AA_CF_ALT_DOWN", "altitude_down_key" },
-			{ "AA_CF_HDG_UP", "course_up_key" },
-			{ "AA_CF_HDG_DOWN", "course_down_key" },
 			{ "AA_FBW_MODERATION", "moderation_keycode" },
 			{ "AA_FBW_ROCKET", "rocket_mode_keycode" },
 			{ "AA_FBW_COORD_TURN", "coord_turn_keycode" },

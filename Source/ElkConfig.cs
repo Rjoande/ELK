@@ -14,7 +14,7 @@ namespace ELK
 {
 	public static class ElkConfig
 	{
-		public const string Version = "1.1.3";
+		public const string Version = "1.1.4";
 
 		private const string OptSasAutoEngage = "sas_autoengage";
 		private const string OptSasNavball = "sas_navball";
