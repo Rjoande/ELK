@@ -34,10 +34,9 @@ up with:
     GameData/ELK/Textures/
 
 The optional toolbar additionally needs ToolbarControl and
-ClickThroughBlocker. They are not in the plain ELK zip: install them
-yourself, or download the "with-dependencies" zip of the release, which
-carries both folders - copy those into GameData too, unless you already have
-them (in that case keep the newer version). CKAN installs them for you.
+ClickThroughBlocker. They are not in the ELK zip: install them from
+their own releases (links at the end of this file), unless you already have
+them. CKAN installs them for you.
 
 If you'd rather not have the toolbar at all, you can skip both dependencies:
 set "toolbar = false" in ELK.cfg and bind your keys by hand.
@@ -266,7 +265,7 @@ MIT - see LICENSE (included in this zip).
 Source, changelog and issue tracker:
     https://github.com/Rjoande/ELK
 
-Dependencies (toolbar only; bundled in the "with-dependencies" zip):
+Dependencies (toolbar only; installed by CKAN, not in the ELK zip):
     ToolbarControl        https://github.com/linuxgurugamer/ToolbarControl
     ClickThroughBlocker   https://github.com/linuxgurugamer/ClickThroughBlocker
 
