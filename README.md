@@ -20,7 +20,7 @@ Each hotkey calls the same API the corresponding UI element calls - stock or the
 
 **CKAN:** search for *ELK* (identifier `ELK`); the toolbar dependencies are installed with it.
 
-**Manual:** drop the `ELK` folder into `GameData`, so you end up with `GameData/ELK/Plugins/ELK.dll`. The optional toolbar additionally needs [ToolbarControl](https://github.com/linuxgurugamer/ToolbarControl) and [ClickThroughBlocker](https://github.com/linuxgurugamer/ClickThroughBlocker), both bundled in the `with-dependencies` zip of each release (the plain `ELK_v<version>.zip` carries only ELK, as CKAN needs). Set `toolbar = false` in `ELK.cfg` if you'd rather not have them at all and just hand-edit the config.
+**Manual:** drop the `ELK` folder into `GameData`, so you end up with `GameData/ELK/Plugins/ELK.dll`. The optional toolbar additionally needs [ToolbarControl](https://github.com/linuxgurugamer/ToolbarControl) and [ClickThroughBlocker](https://github.com/linuxgurugamer/ClickThroughBlocker), which you install from their own releases (the ELK zip carries only ELK, as CKAN needs). Set `toolbar = false` in `ELK.cfg` if you'd rather not have them at all and just hand-edit the config.
 
 None of the supported mods is required. Upgrading from 1.0.x: your stock keys are migrated into the new `ELK_Squad.cfg` automatically on the first launch.
 
