@@ -182,7 +182,7 @@ A "preset" is one or more per-tab cfg files with the keys already filled in; `EL
 
 ## Optional integrations
 
-Nothing in this section is required or bundled. ELK looks for each mod's DLL at runtime and reaches it by reflection, so a missing mod just hides its tab; a future version of a mod that renames something turns the affected keys into no-ops with a warning in the log, never into an error. Verified against AtmosphereAutopilot 1.6.1 (official and Rjoande's fork), AtmosphereApproach 1.0.0, Approach Autopilot 1.0.1, MechJeb2 2.15.3 and NavInstruments Continued 0.8.1.1 on KSP 1.12.5.
+Nothing in this section is required or bundled. ELK looks for each mod's DLL at runtime and reaches it by reflection, so a missing mod just hides its tab; a future version of a mod that renames something turns the affected keys into no-ops with a warning in the log, never into an error. Verified against AtmosphereAutopilot 1.6.1, AtmosphereApproach 1.0.0, Approach Autopilot 1.0.1, MechJeb2 2.15.3 and NavInstruments Continued 0.8.1.1 on KSP 1.12.5.
 
 Thanks to Boris-Barboris (AtmosphereAutopilot), the MechJeb team, kujuman and linuxgurugamer (NavUtilities / NavInstruments Continued), and linuxgurugamer again for ToolbarControl and ClickThroughBlocker.
 
