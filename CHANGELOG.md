@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- **SCANsat tab** (`ELK_SCANsat.cfg`): `SCAN_SMALL_MAP_TOGGLE`, `SCAN_BIG_MAP_TOGGLE`, `SCAN_ZOOM_MAP_TOGGLE`, `SCAN_OVERLAY_TOGGLE` and `SCAN_INSTRUMENTS_TOGGLE` open and close SCANsat's small map, big map, zoom map, planetary overlay and instruments windows, like its toolbar menu. They fire in map view by default and are not touched by a key-set change. The zoom map opens centred on the vessel.
+
 ## v1.1.4
 
 ### Changed
