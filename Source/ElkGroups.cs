@@ -53,6 +53,7 @@ namespace ELK
 		public const string MechJeb2 = "MechJeb2";
 		public const string MechJeb2Plus = "MechJeb2Plus";
 		public const string NavUtilities = "NavUtilities";
+		public const string SCANsat = "SCANsat";
 
 		public static readonly List<ElkGroup> All = new List<ElkGroup>
 		{
@@ -83,6 +84,8 @@ namespace ELK
 				}),
 			new ElkGroup(MechJeb2Plus, "MechJeb2+", "ELK_MechJeb2.cfg", ElkMjBridge.IsInstalled, null, null),
 			new ElkGroup(NavUtilities, "NavUtilities", "ELK_NavUtilities.cfg", ElkNavBridge.IsInstalled, null, null),
+			// SCANsat has no native hotkeys and no ELK options for now.
+			new ElkGroup(SCANsat, "SCANsat", "ELK_SCANsat.cfg", ElkScanBridge.IsInstalled, null, null),
 		};
 
 		public static ElkGroup Find(string id)

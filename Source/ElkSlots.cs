@@ -180,6 +180,17 @@ namespace ELK
 			// --- NavUtilities --- Like a left click on its toolbar button (HSI
 			// window); no-op if its Flight addon is not awake.
 			new ElkSlot("NAV_HSI_TOGGLE", "NavUtilities: HSI window", FireNavHsiToggle, ElkGroups.NavUtilities, ElkNavBridge.IsInstalled),
+
+			// --- SCANsat --- Each toggles one window like its toolbar button or
+			// toolbar menu entry; no-op before SCANsat has created its flight UI.
+			// No `off`: windows only, nothing to switch off on a set change.
+			// Zoom map opens centred on the vessel (as from the toolbar menu);
+			// SCANsat's own Vessel Lock and auto-refresh buttons keep it there.
+			new ElkSlot("SCAN_SMALL_MAP_TOGGLE", "Small map", ElkScanBridge.ToggleSmallMap, ElkGroups.SCANsat, ElkScanBridge.IsInstalled) { mapDefault = true },
+			new ElkSlot("SCAN_BIG_MAP_TOGGLE", "Big map", ElkScanBridge.ToggleBigMap, ElkGroups.SCANsat, ElkScanBridge.IsInstalled) { mapDefault = true },
+			new ElkSlot("SCAN_ZOOM_MAP_TOGGLE", "Zoom map", ElkScanBridge.ToggleZoomMap, ElkGroups.SCANsat, ElkScanBridge.IsInstalled) { mapDefault = true },
+			new ElkSlot("SCAN_OVERLAY_TOGGLE", "Planetary overlay", ElkScanBridge.ToggleOverlay, ElkGroups.SCANsat, ElkScanBridge.IsInstalled) { mapDefault = true },
+			new ElkSlot("SCAN_INSTRUMENTS_TOGGLE", "Instruments", ElkScanBridge.ToggleInstruments, ElkGroups.SCANsat, ElkScanBridge.IsInstalled) { mapDefault = true },
 		};
 
 		/// <summary>Stock SAS slot -> SmartASS slot with the same meaning (Copy from/to SAS in the MechJeb2 tab). Radial follows the navball on both sides.</summary>

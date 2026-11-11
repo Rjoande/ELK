@@ -36,6 +36,7 @@ set "CSC=C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
  "%~dp0ElkNavball.cs" ^
  "%~dp0Bridges\ElkReflection.cs" ^
  "%~dp0Bridges\ElkNavBridge.cs" ^
+ "%~dp0Bridges\ElkScanBridge.cs" ^
  "%~dp0Bridges\ElkAaKeys.cs" ^
  "%~dp0Bridges\ElkAaBridge.cs" ^
  "%~dp0Bridges\ElkMjBridge.cs" ^
