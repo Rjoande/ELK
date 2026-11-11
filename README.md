@@ -2,7 +2,7 @@
 
 ![](assets/Elk2.jpg)
 
-A small KSP plugin that assigns configurable hotkeys to functions that don't have any: toggling stock *Brakes*, jumping to a specific SAS mode, and - when the mod is installed - the autopilot modes, holds and windows of **AtmosphereAutopilot**, **Approach Autopilot** (formerly AtmosphereApproach), **MechJeb2** and **NavUtilities**. Keys can be grouped into **key sets** that rotate with a single press, so the same keypad drives the stock SAS on a rocket and Cruise Flight on a plane. An optional in-game toolbar (Space Center only) lets you assign keys by pressing them, instead of hand-editing a config file.
+A small KSP plugin that assigns configurable hotkeys to functions that don't have any: toggling stock *Brakes*, jumping to a specific SAS mode, and - when the mod is installed - the autopilot modes, holds and windows of **AtmosphereAutopilot**, **Approach Autopilot** (formerly AtmosphereApproach), **MechJeb2**, **NavUtilities** and **SCANsat**. Keys can be grouped into **key sets** that rotate with a single press, so the same keypad drives the stock SAS on a rocket and Cruise Flight on a plane. An optional in-game toolbar (Space Center only) lets you assign keys by pressing them, instead of hand-editing a config file.
 
 ## The problem
 
@@ -95,6 +95,18 @@ MechJeb's own gates apply (no MechJeb aboard, module locked in career, nothing t
 |---|---|
 | `NAV_HSI_TOGGLE` | HSI window on/off, same as a click on its toolbar button (icon kept in sync). |
 
+**SCANsat tab** - `ELK_SCANsat.cfg` (needs [SCANsat](https://github.com/KSPModStewards/SCANsat))
+
+| Slot | Does |
+|---|---|
+| `SCAN_SMALL_MAP_TOGGLE` | Small map on/off, same as a click on SCANsat's toolbar button. |
+| `SCAN_BIG_MAP_TOGGLE` | Big map on/off. |
+| `SCAN_ZOOM_MAP_TOGGLE` | Zoom map on/off; it opens centred on the vessel. |
+| `SCAN_OVERLAY_TOGGLE` | Planetary overlay window on/off (the overlay itself shows in map view). |
+| `SCAN_INSTRUMENTS_TOGGLE` | Instruments window on/off. |
+
+Each key does what the matching entry of SCANsat's toolbar menu does, and all of them fire in map view by default. To keep the zoom map following the vessel, use SCANsat's own buttons in that window: the lock (Vessel Lock) and the auto-refresh (white = off, yellow = every 8 s, green = every 4 s).
+
 ## Key sets
 
 Name some sets in `ELK.cfg` - `sets = Stock, MechJeb, AA` - then give each hotkey a set (`set = MechJeb` in its node, or the button next to its row in the toolbar) or leave it empty for "always". `SET_NEXT` / `SET_PREV` rotate through the list with an on-screen message, and only the hotkeys of the active set (plus the "always" ones) fire. The same physical key can then select Prograde on the stock SAS in one set and on SmartASS in the next, and ELK only warns about clashes between keys that can be active together.
@@ -184,7 +196,7 @@ A "preset" is one or more per-tab cfg files with the keys already filled in; `EL
 
 Nothing in this section is required or bundled. ELK looks for each mod's DLL at runtime and reaches it by reflection, so a missing mod just hides its tab; a future version of a mod that renames something turns the affected keys into no-ops with a warning in the log, never into an error. Verified against AtmosphereAutopilot 1.6.1, AtmosphereApproach 1.0.0, Approach Autopilot 1.0.1, MechJeb2 2.15.3 and NavInstruments Continued 0.8.1.1 on KSP 1.12.5.
 
-Thanks to Boris-Barboris (AtmosphereAutopilot), the MechJeb team, kujuman and linuxgurugamer (NavUtilities / NavInstruments Continued), and linuxgurugamer again for ToolbarControl and ClickThroughBlocker.
+Thanks to Boris-Barboris (AtmosphereAutopilot), the MechJeb team, kujuman and linuxgurugamer (NavUtilities / NavInstruments Continued), the SCANsat team and KSPModStewards, and linuxgurugamer again for ToolbarControl and ClickThroughBlocker.
 
 ## Compatibility
 
