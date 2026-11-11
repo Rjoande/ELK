@@ -7,8 +7,8 @@ ELK assigns hotkeys to functions KSP leaves unbound: toggling Brakes, and
 setting a specific SAS autopilot mode (Stability Assist, Prograde/Retrograde,
 Normal/Anti-normal, Radial in/out, Target/Anti-target, Maneuver node). With
 the mod installed it also offers hotkeys for AtmosphereAutopilot,
-Approach Autopilot (formerly AtmosphereApproach), MechJeb2 and NavUtilities
-(NavInstruments Continued).
+Approach Autopilot (formerly AtmosphereApproach), MechJeb2, NavUtilities
+(NavInstruments Continued) and SCANsat.
 Keys can be grouped into "key sets" that rotate with one press, so the same
 keypad drives the stock SAS on a rocket and Cruise Flight on a plane. An
 optional in-game toolbar (Space Center only) lets you assign keys by
@@ -122,6 +122,11 @@ MechJeb2 (two tabs)
 NavUtilities
     HSI window on/off.
 
+SCANsat
+    Small map / Big map / Zoom map / Planetary overlay / Instruments
+    windows on/off, like SCANsat's toolbar menu. The zoom map opens on the
+    vessel; its own lock and auto-refresh buttons keep it there.
+
 The slot ids (node names in the cfg files) are listed in README.md on the
 project page.
 
@@ -148,6 +153,7 @@ Space Center, so no game restart is needed after an edit.
     ELK_AtmosphereAutopilot.cfg   created when AA is detected
     ELK_MechJeb2.cfg              created when MechJeb2 is detected
     ELK_NavUtilities.cfg          created when NavUtilities is detected
+    ELK_SCANsat.cfg               created when SCANsat is detected
 
 The mod files are created with every key empty and never deleted. Each
 hotkey is a node like:
