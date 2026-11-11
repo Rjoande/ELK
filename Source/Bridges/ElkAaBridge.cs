@@ -628,7 +628,7 @@ namespace ELK
 			SetCruiseMode(vessel, waypointMode, "Waypoint tracking mode selected");
 		}
 
-		/// <summary>Fork's V/S and ALT keys: engage vertical control in that mode, or disengage it if already in that mode.</summary>
+		/// <summary>V/S and ALT keys: engage Cruise Flight's vertical control in that height mode, or disengage it if already in that mode.</summary>
 		private static void CruiseHeightToggle(Vessel vessel, object mode, string engaged, string disengaged)
 		{
 			object cruise = Engaged(vessel, cruiseType);
