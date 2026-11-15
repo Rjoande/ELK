@@ -10,7 +10,7 @@ x_netkan_github:
   prereleases: false
 license: MIT
 resources:
-  homepage: https://forum.kerbalspaceprogram.com/topic/231826-112x-elk-extended-logical-keys/
+  homepage: https://forum.kerbalspaceprogram.com/topic/231826-112x-elk-extended-logic-keys/
   repository: https://github.com/Rjoande/ELK
 tags:
   - plugin
